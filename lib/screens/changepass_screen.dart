@@ -44,7 +44,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'ĐỔI MẬT KHẨU',
+          'CHANGE PASSWORD',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
@@ -68,7 +68,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               TextField(
                 controller: _oldPasswordController,
                 decoration: InputDecoration(
-                  labelText: 'Mật khẩu cũ',
+                  labelText: 'Old password',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.lock),
                 ),
@@ -78,7 +78,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               TextField(
                 controller: _newPasswordController,
                 decoration: InputDecoration(
-                  labelText: 'Mật khẩu mới',
+                  labelText: 'New Password',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.lock_outline),
                 ),
@@ -88,7 +88,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               TextField(
                 controller: _confirmPasswordController,
                 decoration: InputDecoration(
-                  labelText: 'Xác nhận mật khẩu mới',
+                  labelText: 'Confirm new password',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.lock_outline),
                 ),
@@ -123,7 +123,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               ),
             ),
             child: Text(
-              'Đổi mật khẩu',
+              'Change password',
               style: TextStyle(color: Colors.black, fontSize: 20),
             ),
           ),

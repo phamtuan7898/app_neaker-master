@@ -129,7 +129,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               right: MediaQuery.of(context).size.width *
                   0.1, // Add padding from right
               child: Text(
-                'Chào mừng bạn đến với SneaSto!',
+                'Welcome to SneaSto!',
                 style: TextStyle(
                     fontSize: 20.0,
                     color: Colors.white,

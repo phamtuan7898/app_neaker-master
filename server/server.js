@@ -393,7 +393,7 @@ app.post('/check-user', async (req, res) => {
     if (!user) {
       return res.status(404).json({ 
         success: false,
-        message: 'Không tìm thấy tài khoản với thông tin này' 
+        message: 'No account found with this information' 
       });
     }
 
@@ -401,14 +401,14 @@ app.post('/check-user', async (req, res) => {
     res.json({ 
       success: true,
       userId: user._id,
-      message: 'Tài khoản hợp lệ' 
+      message: 'Valid account' 
     });
 
   } catch (error) {
     console.error('Error checking user:', error);
     res.status(500).json({ 
       success: false,
-      message: 'Đã xảy ra lỗi khi kiểm tra tài khoản' 
+      message: 'An error occurred while checking account' 
     });
   }
 });
@@ -421,7 +421,7 @@ app.post('/forgot-password', async (req, res) => {
     if (!user) {
       return res.status(404).json({ 
         success: false,
-        message: 'Không tìm thấy người dùng với email này' 
+        message: 'No user found with this email' 
       });
     }
 
@@ -440,14 +440,14 @@ app.post('/forgot-password', async (req, res) => {
     let mailOptions = {
       from: 'your-actual-email@gmail.com', // Thay email thực
       to: email,
-      subject: 'Yêu cầu đặt lại mật khẩu',
+      subject: 'Password reset request',
       html: `
-        <h2>Yêu cầu đặt lại mật khẩu</h2>
-        <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản của mình.</p>
-        <p>Vui lòng click vào link bên dưới để đặt lại mật khẩu:</p>
-        <a href="${resetLink}">Đặt lại mật khẩu</a>
-        <p>Link này sẽ hết hạn sau 1 giờ.</p>
-        <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+        <h2>Password reset request</h2>
+        <p>You have requested a password reset for your account.</p>
+        <p>Please click the link below to reset your password:</p>
+        <a href="${resetLink}">Reset Password</a>
+        <p>This link will expire in 1 hour.</p>
+        <p>If you did not request a password reset, please ignore this email.</p>
       `
     };
 
@@ -455,14 +455,14 @@ app.post('/forgot-password', async (req, res) => {
     
     res.json({ 
       success: true,
-      message: 'Email đặt lại mật khẩu đã được gửi' 
+      message: 'Password reset email has been sent' 
     });
 
   } catch (error) {
-    console.error('Lỗi xử lý quên mật khẩu:', error);
+    console.error('Error handling forgotten password:', error);
     res.status(500).json({ 
       success: false,
-      message: 'Đã xảy ra lỗi khi xử lý yêu cầu' 
+      message: 'An error occurred while processing the request.' 
     });
   }
 });
@@ -475,7 +475,7 @@ app.post('/reset-password', async (req, res) => {
     if (!user) {
       return res.status(404).json({ 
         success: false,
-        message: 'Không tìm thấy người dùng' 
+        message: 'User not found' 
       });
     }
 
@@ -485,14 +485,14 @@ app.post('/reset-password', async (req, res) => {
 
     res.json({ 
       success: true,
-      message: 'Mật khẩu đã được cập nhật thành công' 
+      message: 'Password updated successfully' 
     });
 
   } catch (error) {
     console.error('Error resetting password:', error);
     res.status(500).json({ 
       success: false,
-      message: 'Đã xảy ra lỗi khi đặt lại mật khẩu' 
+      message: 'An error occurred while resetting password.' 
     });
   }
 });
@@ -644,7 +644,7 @@ app.delete('/products/:id', async (req, res) => {
   try {
     // Tìm và xoá sản phẩm
     await Product.findByIdAndDelete(id);
-    res.status(200).json({ message: 'Sản phẩm đã được xoá thành công' });
+    res.status(200).json({ message: 'Product has been deleted successfully' });
   } catch (error) {
     console.error('Error deleting product:', error);
     res.status(500).json({ error: 'Error deleting product' });

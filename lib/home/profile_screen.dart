@@ -110,7 +110,7 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('CÁ NHÂN', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: Text('PROFILE', style: TextStyle(fontWeight: FontWeight.w600)),
         centerTitle: true,
         flexibleSpace: Container(
           decoration: BoxDecoration(

@@ -23,7 +23,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (email.isEmpty ||
         !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w]{2,4}').hasMatch(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Vui lòng nhập email hợp lệ')),
+        SnackBar(content: Text('Please enter a valid email')),
       );
       return;
     }
@@ -33,14 +33,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       // Hiển thị thông báo thành công
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(
-                'Liên kết đặt lại mật khẩu đã được gửi đến email của bạn.')),
+            content:
+                Text('A password reset link has been sent to your email.')),
       );
       Navigator.pop(context); // Quay lại trang trước đó
     } catch (e) {
       // Hiển thị thông báo lỗi
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Có lỗi xảy ra')),
+        SnackBar(content: Text('An error occurred.')),
       );
     }
   }
@@ -49,7 +49,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final emailOrUsername = _emailController.text;
     if (emailOrUsername.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Vui lòng nhập email hoặc tên đăng nhập')),
+        SnackBar(
+          content: Text('Please enter email or username'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -57,6 +60,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     try {
       final result = await _authService.checkUser(emailOrUsername);
       if (result['success']) {
+        // Hiển thị thông báo thành công
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Email verified successfully! Redirecting...'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(bottom: 20.0, left: 20.0, right: 20.0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.0),
+            ),
+          ),
+        );
+
+        // Đợi 2 giây để người dùng đọc thông báo
+        await Future.delayed(Duration(seconds: 2));
+
+        // Chuyển sang trang reset password
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -68,7 +89,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(bottom: 20.0, left: 20.0, right: 20.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+        ),
       );
     }
   }
@@ -77,7 +106,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Quên Mật Khẩu'),
+        title: Text('Forgot Password'),
         centerTitle: true,
         backgroundColor: Colors.white24,
         foregroundColor: Colors.black,
@@ -182,7 +211,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         // Thay đổi từ _forgotPassword sang _checkUserAndResetPassword
         onPressed: _checkUserAndResetPassword,
         child: Text(
-          'Đặt lại mật khẩu',
+          'Reset Password',
           style: TextStyle(color: Colors.white),
         ),
         style: ElevatedButton.styleFrom(

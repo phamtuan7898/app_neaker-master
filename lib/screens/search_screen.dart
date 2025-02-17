@@ -51,7 +51,7 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'TÌM KIẾM',
+          'SEARCH',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
@@ -72,7 +72,7 @@ class _SearchScreenState extends State<SearchScreen> {
             TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Tìm kiếm...',
+                hintText: 'Search...',
                 prefixIcon:
                     Icon(Icons.search, color: Colors.lightBlueAccent.shade700),
                 border: OutlineInputBorder(
@@ -162,8 +162,8 @@ class _SearchScreenState extends State<SearchScreen> {
                             );
                           },
                         )
-                      : Center(child: Text('Không có sản phẩm nào.'))
-                  : Center(child: Text('Vui lòng nhập từ khóa tìm kiếm.')),
+                      : Center(child: Text('No products available.'))
+                  : Center(child: Text('Please enter search keyword.')),
             ),
           ],
         ),

@@ -1,5 +1,3 @@
-// lib/services/order_service.dart
-
 import 'dart:convert';
 import 'package:app_neaker/models/order_model.dart';
 import 'package:http/http.dart' as http;

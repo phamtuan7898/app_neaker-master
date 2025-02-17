@@ -44,7 +44,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       setState(() {
         isLoading = false;
       });
-      _showErrorMessage('Không thể tải danh sách đơn hàng');
+      _showErrorMessage('Unable to load order list');
     }
   }
 
@@ -89,21 +89,21 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                     ),
                   ),
                   Text(
-                    'Chi tiết đơn hàng',
+                    'Order details',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   SizedBox(height: 16),
-                  _buildInfoRow('Ngày đặt:',
+                  _buildInfoRow('Date booked:',
                       DateFormat('dd/MM/yyyy HH:mm').format(order.orderDate)),
-                  _buildInfoRow('Trạng thái:', order.status),
-                  _buildInfoRow('Số điện thoại:', order.phone),
-                  _buildInfoRow('Địa chỉ:', order.address),
+                  _buildInfoRow('Status:', order.status),
+                  _buildInfoRow('Phone number:', order.phone),
+                  _buildInfoRow('Address:', order.address),
                   SizedBox(height: 16),
                   Text(
-                    'Sản phẩm:',
+                    'Product:',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -113,7 +113,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   ...order.items.map((item) => _buildOrderItemTile(item)),
                   Divider(thickness: 1),
                   _buildInfoRow(
-                    'Tổng tiền:',
+                    'Total amount:',
                     currencyFormatter.format(order.totalAmount),
                     textStyle: TextStyle(
                       fontSize: 18,
@@ -165,7 +165,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           style: TextStyle(fontWeight: FontWeight.w500),
         ),
         subtitle: Text(
-          'Số lượng: ${item.quantity}',
+          'Quantity: ${item.quantity}',
           style: TextStyle(color: Colors.grey[600]),
         ),
         trailing: Text(
@@ -184,7 +184,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text('ĐƠN HÀNG CỦA TÔI')),
+        appBar: AppBar(title: Text('MY ORDER')),
         body: Center(child: CircularProgressIndicator()),
       );
     }
@@ -192,7 +192,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'ĐƠN HÀNG CỦA TÔI',
+          'MY ORDER',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
@@ -211,7 +211,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         child: orders.isEmpty
             ? Center(
                 child: Text(
-                  'Chưa có đơn hàng nào',
+                  'No orders yet',
                   style: TextStyle(fontSize: 18),
                 ),
               )
@@ -232,7 +232,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Đơn hàng #${order.id.substring(0, 8)}',
+                                  'Order #${order.id.substring(0, 8)}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
@@ -247,7 +247,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                             ),
                             SizedBox(height: 8),
                             Text(
-                              '${order.items.length} sản phẩm',
+                              '${order.items.length} product',
                               style: TextStyle(color: Colors.grey[600]),
                             ),
                             SizedBox(height: 8),
@@ -255,7 +255,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Tổng tiền:',
+                                  'Total amount:',
                                   style: TextStyle(fontSize: 16),
                                 ),
                                 Text(

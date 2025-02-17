@@ -52,7 +52,7 @@ class AuthService {
 
       return _currentUser!;
     } else {
-      throw Exception('Đăng nhập không thành công');
+      throw Exception('Login failed');
     }
   }
 

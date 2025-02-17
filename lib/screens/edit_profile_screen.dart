@@ -87,7 +87,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'SỬA HỒ SƠ',
+          'EDIT PROFILE',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
@@ -118,13 +118,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
             ),
             SizedBox(height: 16),
-            _buildTextField(usernameController, 'Tên người dùng', Icons.person),
+            _buildTextField(usernameController, 'User name', Icons.person),
             SizedBox(height: 16),
             _buildTextField(emailController, 'Email', Icons.email),
             SizedBox(height: 16),
-            _buildTextField(phoneController, 'Số điện thoại', Icons.phone),
+            _buildTextField(phoneController, 'Phone number', Icons.phone),
             SizedBox(height: 16),
-            _buildTextField(addressController, 'Địa chỉ', Icons.home),
+            _buildTextField(addressController, 'Address', Icons.home),
           ],
         ),
       ),
@@ -153,7 +153,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
             ),
             child: Text(
-              'Lưu thay đổi',
+              'Save changes',
               style: TextStyle(color: Colors.black, fontSize: 20),
             ),
           ),

@@ -122,7 +122,7 @@ class _CartScreenState extends State<CartScreen> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Thông tin giao hàng'),
+          title: Text('Delivery information'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -131,8 +131,8 @@ class _CartScreenState extends State<CartScreen> {
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
-                    labelText: 'Số điện thoại',
-                    hintText: 'Nhập số điện thoại của bạn',
+                    labelText: 'Phone number',
+                    hintText: 'Enter your phone number',
                     prefixIcon: Icon(Icons.phone),
                     border: OutlineInputBorder(),
                   ),
@@ -141,8 +141,8 @@ class _CartScreenState extends State<CartScreen> {
                 TextField(
                   controller: _addressController,
                   decoration: InputDecoration(
-                    labelText: 'Địa chỉ giao hàng',
-                    hintText: 'Nhập địa chỉ của bạn',
+                    labelText: 'Shipping address',
+                    hintText: 'Enter your address',
                     prefixIcon: Icon(Icons.location_on),
                     border: OutlineInputBorder(),
                   ),
@@ -153,19 +153,19 @@ class _CartScreenState extends State<CartScreen> {
           ),
           actions: <Widget>[
             TextButton(
-              child: Text('Hủy'),
+              child: Text('Cancel'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: Text('Xác nhận'),
+              child: Text('Confirm'),
               onPressed: () async {
                 if (_phoneController.text.trim().isEmpty ||
                     _phoneController.text.trim().length < 10) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Vui lòng nhập số điện thoại hợp lệ'),
+                      content: Text('Please enter a valid phone number'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -175,7 +175,7 @@ class _CartScreenState extends State<CartScreen> {
                 if (_addressController.text.trim().isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Vui lòng nhập địa chỉ'),
+                      content: Text('Please enter address'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -191,7 +191,7 @@ class _CartScreenState extends State<CartScreen> {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Không thể cập nhật thông tin'),
+                      content: Text('Unable to update information'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -223,7 +223,7 @@ class _CartScreenState extends State<CartScreen> {
       }
     } catch (e) {
       print('Error fetching cart items: $e');
-      _showErrorMessage('Không thể tải giỏ hàng');
+      _showErrorMessage('Unable to load cart');
     }
   }
 
@@ -231,7 +231,7 @@ class _CartScreenState extends State<CartScreen> {
     if (currentUser == null || isUpdating) return;
 
     if (newQuantity < 1) {
-      _showErrorMessage('Số lượng không thể nhỏ hơn 1');
+      _showErrorMessage('Quantity cannot be less than 1');
       return;
     }
 
@@ -254,10 +254,10 @@ class _CartScreenState extends State<CartScreen> {
         }
       });
 
-      _showSuccessMessage('Đã cập nhật số lượng');
+      _showSuccessMessage('Quantity updated');
     } catch (e) {
       print('Error updating cart item quantity: $e');
-      _showErrorMessage('Không thể cập nhật số lượng');
+      _showErrorMessage('Unable to update quantity');
       // Khôi phục lại số lượng cũ nếu cập nhật thất bại
       setState(() {
         final index = cartItems.indexWhere((i) => i.id == item.id);
@@ -274,7 +274,7 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _processPayment() async {
     if (cartItems.isEmpty) {
-      _showErrorMessage('Giỏ hàng trống');
+      _showErrorMessage('Cart is empty');
       return;
     }
 
@@ -286,34 +286,34 @@ class _CartScreenState extends State<CartScreen> {
         barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text('Xác nhận thanh toán'),
+            title: Text('Payment Confirmation'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Thông tin giao hàng:'),
+                  Text('Delivery information:'),
                   SizedBox(height: 8),
-                  Text('Số điện thoại: ${_phoneController.text.trim()}'),
+                  Text('Phone number: ${_phoneController.text.trim()}'),
                   SizedBox(height: 4),
-                  Text('Địa chỉ: ${_addressController.text.trim()}'),
+                  Text('Address: ${_addressController.text.trim()}'),
                   SizedBox(height: 12),
                   Text(
-                      'Tổng tiền: ${currencyFormatter.format(getTotalPriceInVND())}'),
+                      'Total amount: ${currencyFormatter.format(getTotalPriceInVND())}'),
                   SizedBox(height: 8),
-                  Text('Bạn có chắc chắn muốn thực hiện thanh toán?'),
+                  Text('Are you sure you want to make payment?'),
                 ],
               ),
             ),
             actions: <Widget>[
               TextButton(
-                child: Text('Hủy'),
+                child: Text('Cancel'),
                 onPressed: () {
                   Navigator.of(context).pop(false);
                 },
               ),
               TextButton(
-                child: Text('Xác nhận'),
+                child: Text('Confirm'),
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.blue,
                 ),
@@ -345,10 +345,10 @@ class _CartScreenState extends State<CartScreen> {
             setState(() {
               cartItems.clear();
             });
-            _showSuccessMessage('Thanh toán thành công');
+            _showSuccessMessage('Payment successful');
           }
         } catch (e) {
-          _showErrorMessage('Thanh toán thất bại: ${e.toString()}');
+          _showErrorMessage('Payment failed: ${e.toString()}');
         } finally {
           setState(() {
             isLoading = false;
@@ -414,7 +414,7 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text('GIỎ HÀNG')),
+        appBar: AppBar(title: Text('CART')),
         body: Center(child: CircularProgressIndicator()),
       );
     }
@@ -422,7 +422,7 @@ class _CartScreenState extends State<CartScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'GIỎ HÀNG',
+          'CART',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
@@ -438,7 +438,7 @@ class _CartScreenState extends State<CartScreen> {
       ),
       body: cartItems.isEmpty
           ? Center(
-              child: Text('Giỏ hàng trống', style: TextStyle(fontSize: 18)),
+              child: Text('Cart is empty', style: TextStyle(fontSize: 18)),
             )
           : ListView.builder(
               itemCount: cartItems.length,
@@ -463,7 +463,7 @@ class _CartScreenState extends State<CartScreen> {
                               ),
                               SizedBox(height: 4),
                               Text(
-                                'Giá: ${currencyFormatter.format(parsePrice(item.price))}',
+                                'Price: ${currencyFormatter.format(parsePrice(item.price))}',
                                 style: TextStyle(
                                     fontSize: 16, color: Colors.blueAccent),
                               ),
@@ -512,7 +512,7 @@ class _CartScreenState extends State<CartScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Tổng tiền:',
+                'Total amount:',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -538,7 +538,7 @@ class _CartScreenState extends State<CartScreen> {
             child: isLoading
                 ? CircularProgressIndicator(color: Colors.white)
                 : Text(
-                    'THANH TOÁN',
+                    'PAY',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -559,10 +559,10 @@ class _CartScreenState extends State<CartScreen> {
       setState(() {
         cartItems.remove(item);
       });
-      _showSuccessMessage('Đã xóa sản phẩm khỏi giỏ hàng');
+      _showSuccessMessage('Product removed from cart');
     } catch (e) {
       print('Error removing cart item: $e');
-      _showErrorMessage('Không thể xóa sản phẩm');
+      _showErrorMessage('Cannot delete product');
     }
   }
 

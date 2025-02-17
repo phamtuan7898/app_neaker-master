@@ -129,7 +129,7 @@ class ProductDetail extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Kích cỡ có sẵn:',
+          'Available sizes:',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         SizedBox(height: 8.0),
@@ -156,7 +156,7 @@ class ProductDetail extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Màu sắc có sẵn:',
+          'Available colors:',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         SizedBox(height: 8.0),
@@ -207,9 +207,9 @@ class ProductDetail extends StatelessWidget {
               // Show login dialog or navigate to login screen
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Vui lòng đăng nhập để thêm vào giỏ hàng'),
+                  content: Text('Please login to add to cart'),
                   action: SnackBarAction(
-                    label: 'Đăng nhập',
+                    label: 'Log in',
                     onPressed: () {
                       // Navigate to login screen
                       // Navigator.pushNamed(context, '/login');
@@ -229,7 +229,7 @@ class ProductDetail extends StatelessWidget {
             ),
           ),
           child: Text(
-            'Thêm vào giỏ hàng',
+            'Add to cart',
             style: TextStyle(color: Colors.black, fontSize: 16),
           ),
         ),
@@ -245,7 +245,7 @@ class ProductDetail extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Chọn số lượng'),
+          title: Text('Select quantity'),
           content: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
               return Column(
@@ -280,11 +280,11 @@ class ProductDetail extends StatelessWidget {
           ),
           actions: <Widget>[
             TextButton(
-              child: Text('Hủy'),
+              child: Text('Cancel'),
               onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
-              child: Text('Thêm'),
+              child: Text('More'),
               onPressed: () async {
                 CartItem cartItem = CartItem(
                   id: '', // MongoDB will generate this
@@ -301,14 +301,14 @@ class ProductDetail extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                          '${product.productName} đã được thêm vào giỏ hàng!'),
+                          '${product.productName} has been added to cart!'),
                     ),
                   );
                 } catch (e) {
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Không thể thêm sản phẩm vào giỏ hàng.'),
+                      content: Text('Cannot add product to cart.'),
                     ),
                   );
                 }

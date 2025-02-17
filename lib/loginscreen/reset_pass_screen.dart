@@ -20,7 +20,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   void _resetPassword() async {
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Mật khẩu không khớp')),
+        SnackBar(content: Text('Passwords do not match')),
       );
       return;
     }
@@ -34,7 +34,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Mật khẩu đã được đặt lại thành công')),
+        SnackBar(content: Text('Password was reset successfully')),
       );
 
       Navigator.of(context).pushReplacementNamed('/login');
@@ -51,7 +51,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Đặt lại mật khẩu'),
+        title: Text('Reset Password'),
         centerTitle: true,
         backgroundColor: Colors.white24,
         foregroundColor: Colors.black,
@@ -71,13 +71,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             children: [
               _buildTextField(
                 controller: _passwordController,
-                label: 'Mật khẩu mới',
+                label: 'New Password',
                 isPassword: true,
               ),
               SizedBox(height: 16),
               _buildTextField(
                 controller: _confirmPasswordController,
-                label: 'Xác nhận mật khẩu',
+                label: 'Confirm Password',
                 isPassword: true,
               ),
               SizedBox(height: 24),
@@ -85,7 +85,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ? CircularProgressIndicator()
                   : ElevatedButton(
                       onPressed: _resetPassword,
-                      child: Text('Đặt lại mật khẩu'),
+                      child: Text('Reset Password'),
                       style: ElevatedButton.styleFrom(
                         minimumSize: Size(double.infinity, 50),
                         backgroundColor: Colors.blue,

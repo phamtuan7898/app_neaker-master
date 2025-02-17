@@ -60,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'TRANG CHỦ',
+          'HOME',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
@@ -94,9 +94,9 @@ class _HomeScreenState extends State<HomeScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('Có lỗi xảy ra: ${snapshot.error}'));
+            return Center(child: Text('An error occurred: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Không có sản phẩm nào.'));
+            return const Center(child: Text('No products available.'));
           } else {
             final products = snapshot.data!;
             return SingleChildScrollView(
@@ -107,9 +107,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 10.0),
                     child: _buildPromotionsBanner(products),
                   ),
-                  _buildCategoryTitle('Sản phẩm nổi bật'),
+                  _buildCategoryTitle('Featured Products'),
                   _buildHighlightedSection(products),
-                  _buildCategoryTitle('Danh mục sản phẩm'),
+                  _buildCategoryTitle('Product Catalog'),
                   _buildCategorySection(products, 'Running shoes'),
                   _buildCategorySection(products, 'Casual shoes'),
                 ],
@@ -169,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return Container(
         height: 200,
         child: const Center(
-            child: Text('Không có sản phẩm nào trong danh mục này.')),
+            child: Text('There are no products in this category.')),
       );
     }
 
@@ -196,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHorizontalProductList(List<ProductModel> products) {
     if (products.isEmpty) {
-      return const Center(child: Text('Không có sản phẩm nổi bật.'));
+      return const Center(child: Text('No featured products.'));
     }
 
     return Container(

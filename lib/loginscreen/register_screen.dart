@@ -19,12 +19,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _passwordController.text,
         _emailController.text,
       );
-      // Chuyển hướng đến trang đăng nhập hoặc hiển thị thông báo đăng ký thành công
-      Navigator.pop(context); // Quay lại trang đăng nhập
+
+      // Hiển thị dialog thông báo thành công
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Người dùng phải nhấn OK để đóng
+        builder: (BuildContext context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            title: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green, size: 30),
+                SizedBox(width: 10),
+                Text('Success'),
+              ],
+            ),
+            content: Text('Registration completed successfully!'),
+            actions: [
+              TextButton(
+                child: Text(
+                  'OK',
+                  style: TextStyle(
+                    color: Colors.lightBlueAccent.shade700,
+                    fontSize: 16,
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.pop(context); // Đóng dialog
+                  Navigator.pop(context); // Quay lại trang đăng nhập
+                },
+              ),
+            ],
+          );
+        },
+      );
     } catch (e) {
       // Hiển thị thông báo lỗi
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Đăng ký không thành công')),
+        SnackBar(
+          content: Text('Registration failed'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -33,7 +70,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Đăng Ký'),
+        title: Text('Register'),
         centerTitle: true,
         backgroundColor: Colors.white12,
         foregroundColor: Colors.black,
@@ -58,7 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 SizedBox(height: 40), // Khoảng cách trên
                 _buildTextField(
                   controller: _usernameController,
-                  label: 'Tên đăng nhập',
+                  label: 'Username',
                   icon: Icons.person,
                 ),
                 SizedBox(height: 16), // Khoảng cách giữa các trường nhập
@@ -71,7 +108,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 SizedBox(height: 16), // Khoảng cách giữa các trường nhập
                 _buildTextField(
                   controller: _passwordController,
-                  label: 'Mật khẩu',
+                  label: 'Password',
                   icon: Icons.lock,
                   obscureText: true,
                 ),
@@ -84,7 +121,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Navigator.pop(context); // Quay lại trang đăng nhập
                   },
                   child: Text(
-                    'Đã có tài khoản? Đăng nhập',
+                    'Already have an account? Sign in',
                     style: TextStyle(color: Colors.black, fontSize: 16),
                   ),
                 ),
@@ -163,7 +200,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: ElevatedButton(
         onPressed: _register,
         child: Text(
-          'Đăng Ký',
+          'Register',
           style: TextStyle(color: Colors.white),
         ),
         style: ElevatedButton.styleFrom(

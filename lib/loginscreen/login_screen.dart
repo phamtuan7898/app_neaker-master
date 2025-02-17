@@ -30,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Đăng nhập không thành công')),
+        SnackBar(content: Text('Login failed')),
       );
     }
   }
@@ -39,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Đăng Nhập'),
+        title: Text('Log in'),
         centerTitle: true,
         backgroundColor: Colors.white24,
         foregroundColor: Colors.black,
@@ -90,13 +90,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   _buildTextField(
                     controller:
                         _inputController, // Dùng chung cho email/username
-                    label: 'Tên đăng nhập hoặc Email',
+                    label: 'Username or Email',
                     icon: Icons.person,
                   ),
                   SizedBox(height: 16),
                   _buildTextField(
                     controller: _passwordController,
-                    label: 'Mật khẩu',
+                    label: 'Password',
                     icon: Icons.lock,
                     obscureText: true,
                   ),
@@ -107,14 +107,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () {
                       Navigator.pushNamed(context, '/forgot-password');
                     },
-                    child: Text('Quên mật khẩu?',
+                    child: Text('Forgot Password?',
                         style: TextStyle(color: Colors.black, fontSize: 16)),
                   ),
                   TextButton(
                     onPressed: () {
                       Navigator.pushNamed(context, '/register');
                     },
-                    child: Text('Đăng ký',
+                    child: Text('Register',
                         style: TextStyle(color: Colors.black, fontSize: 16)),
                   ),
                 ],
@@ -192,7 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
       child: ElevatedButton(
         onPressed: _login,
         child: Text(
-          'Đăng Nhập',
+          'Log in',
           style: TextStyle(color: Colors.white),
         ),
         style: ElevatedButton.styleFrom(

@@ -70,6 +70,17 @@ const cartItemSchema = new mongoose.Schema({
     min: 1
   }
 });
+// Comment Schema
+const commentSchema = new mongoose.Schema({
+  productId: { type: String, required: true },
+  userId: { type: String, required: true },
+  username: { type: String, required: true },
+  comment: { type: String, required: true },
+  rating: { type: Number, required: true, min: 1, max: 5 },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Comment = mongoose.model('Comment', commentSchema);
 // Admin Schema
 const adminSchema = new mongoose.Schema({
   adminname: { 
@@ -798,7 +809,52 @@ app.put('/cart/:userId/:productId', async (req, res) => {
     });
   }
 });
+// Thêm bình luận mới
+app.post('/comments', async (req, res) => {
+  const { productId, userId, username, comment, rating } = req.body;
+  
+  try {
+    const newComment = new Comment({
+      productId,
+      userId,
+      username,
+      comment,
+      rating
+    });
+    
+    await newComment.save();
+    
+    // Cập nhật rating trung bình cho sản phẩm
+    const comments = await Comment.find({ productId });
+    const totalRating = comments.reduce((sum, item) => sum + item.rating, 0);
+    const averageRating = totalRating / comments.length;
+    
+    await Product.findByIdAndUpdate(
+      productId,
+      { rating: averageRating.toFixed(1) },
+      { new: true }
+    );
+    
+    res.status(201).json(newComment);
+  } catch (error) {
+    console.error('Error adding comment:', error);
+    res.status(500).json({ error: 'Error adding comment' });
+  }
+});
 
+// Lấy bình luận theo productId
+app.get('/comments/:productId', async (req, res) => {
+  const { productId } = req.params;
+  
+  try {
+    const comments = await Comment.find({ productId })
+                                 .sort({ createdAt: -1 });
+    res.json(comments);
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    res.status(500).json({ error: 'Error fetching comments' });
+  }
+});
 
 // Start the server
 app.listen(PORT, () => {

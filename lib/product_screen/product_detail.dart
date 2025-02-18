@@ -1,11 +1,12 @@
 import 'package:app_neaker/models/carts_model.dart';
 import 'package:app_neaker/models/products_model.dart';
 import 'package:app_neaker/models/user_model.dart';
+import 'package:app_neaker/product_screen/comment_screen.dart';
 import 'package:app_neaker/service/cart_service.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter/material.dart';
 
-class ProductDetail extends StatelessWidget {
+class ProductDetail extends StatefulWidget {
   final ProductModel product;
   final UserModel? user; // Make user parameter nullable
 
@@ -15,11 +16,16 @@ class ProductDetail extends StatelessWidget {
   });
 
   @override
+  State<ProductDetail> createState() => _ProductDetailState();
+}
+
+class _ProductDetailState extends State<ProductDetail> {
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          product.productName,
+          widget.product.productName,
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
@@ -60,6 +66,21 @@ class ProductDetail extends StatelessWidget {
               SizedBox(height: 20),
               _buildAvailableColors(),
               SizedBox(height: 30),
+              // Add the comment button here
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CommentScreen(
+                        productId: widget.product.id,
+                        user: widget.user,
+                      ),
+                    ),
+                  );
+                },
+                child: Text('View Comments'),
+              ),
             ],
           ),
         ),
@@ -72,12 +93,12 @@ class ProductDetail extends StatelessWidget {
     return Container(
       height: 300,
       child: PageView.builder(
-        itemCount: product.image.length,
+        itemCount: widget.product.image.length,
         itemBuilder: (context, index) {
           return ClipRRect(
             borderRadius: BorderRadius.circular(12.0),
             child: Image.network(
-              product.image[index],
+              widget.product.image[index],
               fit: BoxFit.cover,
             ),
           );
@@ -87,24 +108,56 @@ class ProductDetail extends StatelessWidget {
   }
 
   Widget _buildTitleAndPrice() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Text(
-            product.productName,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                widget.product.productName,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
             ),
-          ),
+            Text(
+              widget.product.price,
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.blueAccent,
+              ),
+            ),
+          ],
         ),
+        SizedBox(height: 8),
+        _buildRatingBar(),
+      ],
+    );
+  }
+
+  Widget _buildRatingBar() {
+    return Row(
+      children: [
+        RatingBarIndicator(
+          rating: widget.product.rating,
+          itemBuilder: (context, index) => Icon(
+            Icons.star,
+            color: Colors.amber,
+          ),
+          itemCount: 5,
+          itemSize: 22.0,
+          direction: Axis.horizontal,
+        ),
+        SizedBox(width: 8),
         Text(
-          product.price,
+          '${widget.product.rating.toStringAsFixed(1)}',
           style: TextStyle(
-            fontSize: 20,
-            color: Colors.blueAccent,
+            color: Colors.grey[700],
+            fontSize: 16,
           ),
         ),
       ],
@@ -117,7 +170,7 @@ class ProductDetail extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Text(
-          product.description,
+          widget.product.description,
           style: TextStyle(fontSize: 16, color: Colors.grey[700]),
         ),
       ),
@@ -135,7 +188,7 @@ class ProductDetail extends StatelessWidget {
         SizedBox(height: 8.0),
         Wrap(
           spacing: 8.0,
-          children: product.size.map((size) {
+          children: widget.product.size.map((size) {
             return Chip(
               label: Text(size),
               backgroundColor: Colors.blue[100],
@@ -161,7 +214,7 @@ class ProductDetail extends StatelessWidget {
         ),
         SizedBox(height: 8.0),
         Row(
-          children: product.color.map((colorHex) {
+          children: widget.product.color.map((colorHex) {
             Color color = Color(int.parse(colorHex));
             return Container(
               width: 30,
@@ -201,7 +254,7 @@ class ProductDetail extends StatelessWidget {
         ),
         child: ElevatedButton(
           onPressed: () {
-            if (user != null) {
+            if (widget.user != null) {
               _showQuantityDialog(context);
             } else {
               // Show login dialog or navigate to login screen
@@ -238,7 +291,7 @@ class ProductDetail extends StatelessWidget {
   }
 
   void _showQuantityDialog(BuildContext context) {
-    if (user == null) return; // Early return if no user
+    if (widget.user == null) return; // Early return if no user
 
     int quantity = 1;
     showDialog(
@@ -284,24 +337,25 @@ class ProductDetail extends StatelessWidget {
               onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
-              child: Text('More'),
+              child: Text('Add'),
               onPressed: () async {
                 CartItem cartItem = CartItem(
                   id: '', // MongoDB will generate this
-                  userId: user!.id, // Safe to use ! here as we checked above
-                  productId: product.id,
-                  productName: product.productName,
-                  price: product.price,
+                  userId:
+                      widget.user!.id, // Safe to use ! here as we checked above
+                  productId: widget.product.id,
+                  productName: widget.product.productName,
+                  price: widget.product.price,
                   quantity: quantity,
                 );
 
                 try {
-                  await CartService().addCartItem(user!.id, cartItem);
+                  await CartService().addCartItem(widget.user!.id, cartItem);
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                          '${product.productName} has been added to cart!'),
+                          '${widget.product.productName} has been added to cart!'),
                     ),
                   );
                 } catch (e) {

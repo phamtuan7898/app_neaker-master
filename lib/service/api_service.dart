@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  final String baseUrl = 'http://192.168.1.13:5002';
+  final String baseUrl = 'http://192.168.189.119:5002';
 
   Future<UserModel?> getUserProfile(String userId) async {
     try {

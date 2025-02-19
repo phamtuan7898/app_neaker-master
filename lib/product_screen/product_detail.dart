@@ -20,6 +20,9 @@ class ProductDetail extends StatefulWidget {
 }
 
 class _ProductDetailState extends State<ProductDetail> {
+  String? selectedSize;
+  String? selectedColor;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,16 +46,8 @@ class _ProductDetailState extends State<ProductDetail> {
         child: Container(
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 10.0,
-                spreadRadius: 2.0,
+              // Existing decoration...
               ),
-            ],
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -62,11 +57,11 @@ class _ProductDetailState extends State<ProductDetail> {
               SizedBox(height: 10),
               _buildDescription(),
               SizedBox(height: 20),
-              _buildAvailableSizes(),
+              _buildSizeSelector(), // Replace _buildAvailableSizes() with this
               SizedBox(height: 20),
-              _buildAvailableColors(),
+              _buildColorSelector(), // Replace _buildAvailableColors() with this
               SizedBox(height: 30),
-              // Add the comment button here
+              // Comment button and rest of your widget...
               ElevatedButton(
                 onPressed: () {
                   Navigator.push(
@@ -87,6 +82,100 @@ class _ProductDetailState extends State<ProductDetail> {
       ),
       bottomNavigationBar: _buildAddToCartButton(context),
     );
+  }
+
+  Widget _buildSizeSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Select a size:',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        SizedBox(height: 8.0),
+        Wrap(
+          spacing: 8.0,
+          children: widget.product.size.map((size) {
+            return ChoiceChip(
+              label: Text(size),
+              selected: selectedSize == size,
+              onSelected: (selected) {
+                setState(() {
+                  selectedSize = selected ? size : null;
+                });
+              },
+              backgroundColor: Colors.blue[100],
+              selectedColor: Colors.blue[400],
+              padding: EdgeInsets.all(8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 2,
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildColorSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Select a color:',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        SizedBox(height: 8.0),
+        Wrap(
+          spacing: 10.0,
+          children: widget.product.color.map((colorHex) {
+            Color color = Color(int.parse(colorHex));
+            bool isSelected = selectedColor == colorHex;
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  selectedColor = colorHex;
+                });
+              },
+              child: Container(
+                width: 40,
+                height: 40,
+                margin: EdgeInsets.only(right: 8, bottom: 8),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: color,
+                  border: Border.all(
+                    color: isSelected ? Colors.blue : Colors.black54,
+                    width: isSelected ? 3 : 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 4,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: isSelected
+                    ? Center(
+                        child: Icon(
+                          Icons.check,
+                          color:
+                              _isDarkColor(color) ? Colors.white : Colors.black,
+                        ),
+                      )
+                    : null,
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  bool _isDarkColor(Color color) {
+    return color.computeLuminance() < 0.5;
   }
 
   Widget _buildImageCarousel() {
@@ -293,6 +382,21 @@ class _ProductDetailState extends State<ProductDetail> {
   void _showQuantityDialog(BuildContext context) {
     if (widget.user == null) return; // Early return if no user
 
+    // Validate size and color selection
+    if (selectedSize == null || selectedColor == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(selectedSize == null && selectedColor == null
+              ? 'Please select both size and color'
+              : selectedSize == null
+                  ? 'Please select a size'
+                  : 'Please select a color'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     int quantity = 1;
     showDialog(
       context: context,
@@ -304,6 +408,26 @@ class _ProductDetailState extends State<ProductDetail> {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
+                  // Show selected size and color
+                  Text('Size: $selectedSize',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Text('Color: ',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(int.parse(selectedColor!)),
+                          border: Border.all(color: Colors.black54, width: 1),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -341,12 +465,13 @@ class _ProductDetailState extends State<ProductDetail> {
               onPressed: () async {
                 CartItem cartItem = CartItem(
                   id: '', // MongoDB will generate this
-                  userId:
-                      widget.user!.id, // Safe to use ! here as we checked above
+                  userId: widget.user!.id,
                   productId: widget.product.id,
                   productName: widget.product.productName,
                   price: widget.product.price,
                   quantity: quantity,
+                  size: selectedSize!,
+                  color: selectedColor!,
                 );
 
                 try {

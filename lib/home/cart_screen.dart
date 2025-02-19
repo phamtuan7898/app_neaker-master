@@ -467,6 +467,53 @@ class _CartScreenState extends State<CartScreen> {
                                 style: TextStyle(
                                     fontSize: 16, color: Colors.blueAccent),
                               ),
+                              SizedBox(height: 4),
+                              // Thêm dòng hiển thị size và color
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      'Size: ${item.size}',
+                                      style: TextStyle(fontSize: 14),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          'Color: ',
+                                          style: TextStyle(fontSize: 14),
+                                        ),
+                                        Container(
+                                          width: 14,
+                                          height: 14,
+                                          decoration: BoxDecoration(
+                                            color:
+                                                _getColorFromString(item.color),
+                                            border:
+                                                Border.all(color: Colors.grey),
+                                            borderRadius:
+                                                BorderRadius.circular(7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),
@@ -489,6 +536,37 @@ class _CartScreenState extends State<CartScreen> {
             ),
       bottomNavigationBar: cartItems.isEmpty ? null : _buildBottomBar(),
     );
+  }
+
+  Color _getColorFromString(String colorName) {
+    switch (colorName.toLowerCase()) {
+      case 'red':
+        return Colors.red;
+      case 'blue':
+        return Colors.blue;
+      case 'green':
+        return Colors.green;
+      case 'yellow':
+        return Colors.yellow;
+      case 'black':
+        return Colors.black;
+      case 'white':
+        return Colors.white;
+      case 'grey':
+      case 'gray':
+        return Colors.grey;
+      case 'purple':
+        return Colors.purple;
+      case 'orange':
+        return Colors.orange;
+      case 'pink':
+        return Colors.pink;
+      case 'brown':
+        return Colors.brown;
+      default:
+        // If the color string isn't recognized, return a default color
+        return Colors.grey.shade700;
+    }
   }
 
   Widget _buildBottomBar() {

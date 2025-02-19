@@ -159,25 +159,108 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   Widget _buildOrderItemTile(OrderItem item) {
     return Card(
       margin: EdgeInsets.symmetric(vertical: 4),
-      child: ListTile(
-        title: Text(
-          item.productName,
-          style: TextStyle(fontWeight: FontWeight.w500),
-        ),
-        subtitle: Text(
-          'Quantity: ${item.quantity}',
-          style: TextStyle(color: Colors.grey[600]),
-        ),
-        trailing: Text(
-          currencyFormatter.format(
-              double.parse(item.price.replaceAll(RegExp(r'[^\d]'), ''))),
-          style: TextStyle(
-            color: Colors.blue,
-            fontWeight: FontWeight.bold,
-          ),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              item.productName,
+              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  'Quantity: ${item.quantity}',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                Spacer(),
+                Text(
+                  currencyFormatter.format(double.parse(
+                      item.price.replaceAll(RegExp(r'[^\d]'), ''))),
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Size: ',
+                      style: TextStyle(color: Colors.grey[700]),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        item.size,
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(width: 16),
+                Row(
+                  children: [
+                    Text(
+                      'Color: ',
+                      style: TextStyle(color: Colors.grey[700]),
+                    ),
+                    Container(
+                      margin: EdgeInsets.only(right: 4),
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: _getColorFromString(item.color),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                    ),
+                    Text(
+                      item.color,
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
+  }
+
+// Helper method to convert color string to Color object
+  Color _getColorFromString(String colorName) {
+    // Add a map of common color names to Color objects
+    Map<String, Color> colorMap = {
+      'red': Colors.red,
+      'blue': Colors.blue,
+      'green': Colors.green,
+      'yellow': Colors.yellow,
+      'black': Colors.black,
+      'white': Colors.white,
+      'purple': Colors.purple,
+      'orange': Colors.orange,
+      'brown': Colors.brown,
+      'grey': Colors.grey,
+      'pink': Colors.pink,
+    };
+
+    // Convert to lowercase for case-insensitive matching
+    String lowerColorName = colorName.toLowerCase();
+
+    // Return the mapped color or a default color if not found
+    return colorMap[lowerColorName] ?? Colors.grey.shade200;
   }
 
   @override

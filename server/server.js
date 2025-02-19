@@ -68,7 +68,16 @@ const cartItemSchema = new mongoose.Schema({
     required: true,
     default: 1,
     min: 1
+  },
+  size: {      
+    type: String,
+    required: true
+  },
+  color: {     
+    type: String,
+    required: true
   }
+
 });
 // Comment Schema
 const commentSchema = new mongoose.Schema({
@@ -100,13 +109,15 @@ const orderSchema = new mongoose.Schema({
     productId: String,
     productName: String,
     price: String,
-    quantity: Number
+    quantity: Number,
+    size: String,    
+    color: String    
   }],
   totalAmount: { type: Number, required: true },
   orderDate: { type: Date, default: Date.now },
   status: { type: String, default: 'completed' },
-  phone: { type: String, required: true },  // Add phone field
-  address: { type: String, required: true } // Make sure address is required
+  phone: { type: String, required: true },
+  address: { type: String, required: true }
 });
 
 
@@ -134,10 +145,17 @@ app.post('/process-payment/:userId', async (req, res) => {
   session.startTransaction();
 
   try {
-    // Create new order with phone
+    // Create new order with size and color
     const newOrder = new Order({
       userId,
-      items,
+      items: items.map(item => ({
+        productId: item.productId,
+        productName: item.productName,
+        price: item.price,
+        quantity: item.quantity,
+        size: item.size,
+        color: item.color
+      })),
       totalAmount,
       phone,
       address
@@ -703,17 +721,19 @@ app.put('/product/update/:id', async (req, res) => {
 });
 // Add new cart item
 app.post('/cart', async (req, res) => {
-  const { userId, productId, productName, price, quantity } = req.body;
+  const { userId, productId, productName, price, quantity, size, color } = req.body;
   
   try {
-    // Check if item already exists in user's cart
+    // Check if item with the same product, size, and color already exists
     const existingItem = await CartItem.findOne({ 
       userId: userId,
-      productId: productId 
+      productId: productId,
+      size: size,
+      color: color
     });
 
     if (existingItem) {
-      // Update quantity if item exists
+      // Update quantity if item exists with same size and color
       existingItem.quantity += quantity;
       await existingItem.save();
       res.status(200).json(existingItem);
@@ -724,7 +744,9 @@ app.post('/cart', async (req, res) => {
         productId,
         productName,
         price,
-        quantity
+        quantity,
+        size,
+        color
       });
       await newCartItem.save();
       res.status(201).json(newCartItem);

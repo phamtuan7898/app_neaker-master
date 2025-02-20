@@ -501,8 +501,7 @@ class _CartScreenState extends State<CartScreen> {
                                           width: 14,
                                           height: 14,
                                           decoration: BoxDecoration(
-                                            color:
-                                                _getColorFromString(item.color),
+                                            color: _getColorFromHex(item.color),
                                             border:
                                                 Border.all(color: Colors.grey),
                                             borderRadius:
@@ -538,34 +537,28 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Color _getColorFromString(String colorName) {
-    switch (colorName.toLowerCase()) {
-      case 'red':
-        return Colors.red;
-      case 'blue':
-        return Colors.blue;
-      case 'green':
-        return Colors.green;
-      case 'yellow':
-        return Colors.yellow;
-      case 'black':
-        return Colors.black;
-      case 'white':
-        return Colors.white;
-      case 'grey':
-      case 'gray':
+  Color _getColorFromHex(String colorValue) {
+    // If color is stored as a name
+    if (colorValue.toLowerCase() == 'red') return Colors.red;
+    if (colorValue.toLowerCase() == 'blue') return Colors.blue;
+    // ... other named colors
+
+    // If color is stored as an integer value as string
+    try {
+      int colorInt = int.parse(colorValue);
+      return Color(colorInt);
+    } catch (e) {
+      // If parsing fails, try to handle as a hex string
+      if (colorValue.startsWith('#')) {
+        colorValue = colorValue.substring(1);
+      }
+
+      try {
+        return Color(int.parse('0xFF$colorValue'));
+      } catch (e) {
+        // Return a default color if all parsing attempts fail
         return Colors.grey;
-      case 'purple':
-        return Colors.purple;
-      case 'orange':
-        return Colors.orange;
-      case 'pink':
-        return Colors.pink;
-      case 'brown':
-        return Colors.brown;
-      default:
-        // If the color string isn't recognized, return a default color
-        return Colors.grey.shade700;
+      }
     }
   }
 

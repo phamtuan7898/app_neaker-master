@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 class ProductService {
-  final String apiUrl = 'http://192.168.189.119:5002';
+  final String apiUrl = 'http://192.168.1.15:5002';
   final ImagePicker _picker = ImagePicker();
 
   String _formatPriceForApi(String price) {

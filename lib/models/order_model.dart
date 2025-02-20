@@ -21,8 +21,12 @@ class OrderItem {
       productName: json['productName'],
       price: json['price'],
       quantity: json['quantity'],
-      size: json['size'] ?? 'N/A',
-      color: json['color'] ?? 'N/A',
+      size: json['size'] ??
+          json['Size'] ??
+          '', // Kiểm tra cả camelCase và lowercase
+      color: json['color'] ??
+          json['Color'] ??
+          '', // Kiểm tra cả camelCase và lowercase
     );
   }
 }

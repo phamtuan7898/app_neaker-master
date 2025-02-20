@@ -3,7 +3,7 @@ import 'package:app_neaker/models/order_model.dart';
 import 'package:http/http.dart' as http;
 
 class OrderService {
-  final String apiUrl = 'http://192.168.189.119:5002';
+  final String apiUrl = 'http://192.168.1.15:5002';
 
   Future<List<Order>> fetchOrders(String userId) async {
     try {
@@ -13,6 +13,7 @@ class OrderService {
 
       if (response.statusCode == 200) {
         List<dynamic> jsonResponse = json.decode(response.body);
+        print('Fetched Orders: $jsonResponse'); // Debug dữ liệu nhận được
         return jsonResponse.map((order) => Order.fromJson(order)).toList();
       } else {
         throw Exception('Failed to load orders: ${response.body}');

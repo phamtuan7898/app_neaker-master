@@ -1,5 +1,3 @@
-// lib/screens/order_tracking_screen.dart
-
 import 'package:app_neaker/service/auth_service%20.dart';
 import 'package:app_neaker/service/order_service.dart';
 import 'package:flutter/material.dart';
@@ -220,14 +218,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       width: 16,
                       height: 16,
                       decoration: BoxDecoration(
-                        color: _getColorFromString(item.color),
+                        color: _getColorFromHex(item.color),
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.grey.shade300),
                       ),
-                    ),
-                    Text(
-                      item.color,
-                      style: TextStyle(fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -239,28 +233,30 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     );
   }
 
-// Helper method to convert color string to Color object
-  Color _getColorFromString(String colorName) {
-    // Add a map of common color names to Color objects
-    Map<String, Color> colorMap = {
-      'red': Colors.red,
-      'blue': Colors.blue,
-      'green': Colors.green,
-      'yellow': Colors.yellow,
-      'black': Colors.black,
-      'white': Colors.white,
-      'purple': Colors.purple,
-      'orange': Colors.orange,
-      'brown': Colors.brown,
-      'grey': Colors.grey,
-      'pink': Colors.pink,
-    };
+  // Helper method to convert color value to Color object
+  Color _getColorFromHex(String colorValue) {
+    // If color is stored as a name
+    if (colorValue.toLowerCase() == 'red') return Colors.red;
+    if (colorValue.toLowerCase() == 'blue') return Colors.blue;
+    // ... other named colors
 
-    // Convert to lowercase for case-insensitive matching
-    String lowerColorName = colorName.toLowerCase();
+    // If color is stored as an integer value as string
+    try {
+      int colorInt = int.parse(colorValue);
+      return Color(colorInt);
+    } catch (e) {
+      // If parsing fails, try to handle as a hex string
+      if (colorValue.startsWith('#')) {
+        colorValue = colorValue.substring(1);
+      }
 
-    // Return the mapped color or a default color if not found
-    return colorMap[lowerColorName] ?? Colors.grey.shade200;
+      try {
+        return Color(int.parse('0xFF$colorValue'));
+      } catch (e) {
+        // Return a default color if all parsing attempts fail
+        return Colors.grey;
+      }
+    }
   }
 
   @override

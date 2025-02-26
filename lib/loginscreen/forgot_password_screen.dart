@@ -10,42 +10,19 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
   final AuthService _authService = AuthService();
+  bool _isProcessing = false; // Trạng thái xử lý
+
   @override
   void dispose() {
-    // TODO: implement dispose
     _emailController.dispose();
-
     super.dispose();
   }
 
-  void _forgotPassword() async {
-    final email = _emailController.text;
-    if (email.isEmpty ||
-        !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w]{2,4}').hasMatch(email)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter a valid email')),
-      );
-      return;
-    }
-
-    try {
-      await _authService.forgotPassword(_emailController.text);
-      // Hiển thị thông báo thành công
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content:
-                Text('A password reset link has been sent to your email.')),
-      );
-      Navigator.pop(context); // Quay lại trang trước đó
-    } catch (e) {
-      // Hiển thị thông báo lỗi
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred.')),
-      );
-    }
-  }
-
   void _checkUserAndResetPassword() async {
+    setState(() {
+      _isProcessing = true; // Bắt đầu xử lý
+    });
+
     final emailOrUsername = _emailController.text;
     if (emailOrUsername.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -54,36 +31,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           backgroundColor: Colors.red,
         ),
       );
+      setState(() {
+        _isProcessing = false; // Dừng xử lý nếu lỗi
+      });
       return;
     }
 
     try {
       final result = await _authService.checkUser(emailOrUsername);
       if (result['success']) {
-        // Hiển thị thông báo thành công
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Email verified successfully! Redirecting...'),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.only(bottom: 20.0, left: 20.0, right: 20.0),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10.0),
-            ),
           ),
         );
 
-        // Đợi 2 giây để người dùng đọc thông báo
         await Future.delayed(Duration(seconds: 2));
 
-        // Chuyển sang trang reset password
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ResetPasswordScreen(
-              userId: result['userId'],
-            ),
+            builder: (context) => ResetPasswordScreen(userId: result['userId']),
           ),
         );
       }
@@ -92,14 +61,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         SnackBar(
           content: Text(e.toString()),
           backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.only(bottom: 20.0, left: 20.0, right: 20.0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10.0),
-          ),
         ),
       );
     }
+
+    setState(() {
+      _isProcessing = false; // Hoàn tất xử lý
+    });
   }
 
   @override
@@ -114,10 +82,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Colors.white24,
-              Colors.lightBlueAccent.shade700,
-            ],
+            colors: [Colors.white24, Colors.lightBlueAccent.shade700],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -133,6 +98,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   label: 'Email',
                   icon: Icons.email,
                   keyboardType: TextInputType.emailAddress,
+                  enabled: !_isProcessing, // Vô hiệu hoá khi đang xử lý
                 ),
                 SizedBox(height: 20),
                 _buildElevatedButton(),
@@ -149,6 +115,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     required String label,
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
+    bool enabled = true, // Thêm thuộc tính enabled
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -165,22 +132,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
+        enabled: enabled, // Kiểm soát khả năng nhập
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(
-              color: Colors.black54,
-              fontSize: 18), // Enhanced label for better visibility
+          labelStyle: TextStyle(color: Colors.black54, fontSize: 18),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide.none,
           ),
-          prefixIcon:
-              Icon(icon, color: Colors.black), // Biểu tượng cho trường nhập
+          prefixIcon: Icon(icon, color: Colors.black),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(
-              color: Colors.black, // Màu viền khi trường nhập được chọn
-            ),
+            borderSide: BorderSide(color: Colors.black),
           ),
         ),
       ),
@@ -191,10 +154,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Colors.black12,
-            Colors.lightBlueAccent.shade700,
-          ],
+          colors: [Colors.black12, Colors.lightBlueAccent.shade700],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -208,20 +168,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ],
       ),
       child: ElevatedButton(
-        // Thay đổi từ _forgotPassword sang _checkUserAndResetPassword
-        onPressed: _checkUserAndResetPassword,
-        child: Text(
-          'Reset Password',
-          style: TextStyle(color: Colors.white),
-        ),
+        onPressed: _isProcessing ? null : _checkUserAndResetPassword,
+        child: _isProcessing
+            ? CircularProgressIndicator(color: Colors.white)
+            : Text(
+                'Reset Password',
+                style: TextStyle(color: Colors.white),
+              ),
         style: ElevatedButton.styleFrom(
           minimumSize: Size(double.infinity, 50),
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          textStyle: TextStyle(
-            fontSize: 18,
-            color: Colors.white,
-          ),
+          textStyle: TextStyle(fontSize: 18, color: Colors.white),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),

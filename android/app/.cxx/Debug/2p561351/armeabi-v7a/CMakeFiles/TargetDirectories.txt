@@ -1,0 +1,2 @@
+D:/code/app_neaker-master/android/app/.cxx/Debug/2p561351/armeabi-v7a/CMakeFiles/edit_cache.dir
+D:/code/app_neaker-master/android/app/.cxx/Debug/2p561351/armeabi-v7a/CMakeFiles/rebuild_cache.dir

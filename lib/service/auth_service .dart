@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart' as prefs;
 
 class AuthService {
-  final String apiUrl = 'http://192.168.1.15:5002';
+  final String apiUrl = 'http://192.168.1.5:5002';
   static const String USER_KEY = 'current_user';
   static UserModel? _currentUser;
 

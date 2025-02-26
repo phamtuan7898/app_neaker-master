@@ -16,6 +16,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       TextEditingController();
   final AuthService _authService = AuthService();
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   void _resetPassword() async {
     if (_passwordController.text != _confirmPasswordController.text) {
@@ -72,13 +74,25 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               _buildTextField(
                 controller: _passwordController,
                 label: 'New Password',
-                isPassword: true,
+                isPassword: _obscurePassword,
+                togglePasswordVisibility: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+                enabled: !_isLoading,
               ),
               SizedBox(height: 16),
               _buildTextField(
                 controller: _confirmPasswordController,
                 label: 'Confirm Password',
-                isPassword: true,
+                isPassword: _obscureConfirmPassword,
+                togglePasswordVisibility: () {
+                  setState(() {
+                    _obscureConfirmPassword = !_obscureConfirmPassword;
+                  });
+                },
+                enabled: !_isLoading,
               ),
               SizedBox(height: 24),
               _isLoading
@@ -102,6 +116,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     required TextEditingController controller,
     required String label,
     bool isPassword = false,
+    VoidCallback? togglePasswordVisibility,
+    bool enabled = true,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -118,12 +134,22 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       child: TextField(
         controller: controller,
         obscureText: isPassword,
+        enabled: enabled,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide.none,
           ),
+          suffixIcon: togglePasswordVisibility != null
+              ? IconButton(
+                  icon: Icon(
+                    isPassword ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.grey,
+                  ),
+                  onPressed: togglePasswordVisibility,
+                )
+              : null,
         ),
       ),
     );

@@ -11,8 +11,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final AuthService _authService = AuthService();
+  bool _obscurePassword = true;
+  bool _isLoading =
+      false; // Biến trạng thái để khóa TextField khi đang xử lý đăng ký
 
   void _register() async {
+    setState(() {
+      _isLoading = true; // Khóa các TextField
+    });
+
     try {
       await _authService.register(
         _usernameController.text,
@@ -20,10 +27,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _emailController.text,
       );
 
-      // Hiển thị dialog thông báo thành công
       showDialog(
         context: context,
-        barrierDismissible: false, // Người dùng phải nhấn OK để đóng
+        barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
             shape: RoundedRectangleBorder(
@@ -47,8 +53,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 onPressed: () {
-                  Navigator.pop(context); // Đóng dialog
-                  Navigator.pop(context); // Quay lại trang đăng nhập
+                  Navigator.pop(context);
+                  Navigator.pop(context);
                 },
               ),
             ],
@@ -56,7 +62,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         },
       );
     } catch (e) {
-      // Hiển thị thông báo lỗi
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Registration failed'),
@@ -64,6 +69,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
     }
+
+    setState(() {
+      _isLoading = false; // Mở khóa các TextField sau khi đăng ký xong
+    });
   }
 
   @override
@@ -106,12 +115,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   keyboardType: TextInputType.emailAddress,
                 ),
                 SizedBox(height: 16), // Khoảng cách giữa các trường nhập
-                _buildTextField(
-                  controller: _passwordController,
-                  label: 'Password',
-                  icon: Icons.lock,
-                  obscureText: true,
-                ),
+                _buildPasswordField(), // Sử dụng widget mới cho trường mật khẩu
                 SizedBox(
                     height: 20), // Khoảng cách giữa nút đăng ký và trường nhập
                 _buildElevatedButton(),
@@ -155,24 +159,69 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
+        enabled: !_isLoading, // Khóa TextField khi đang xử lý đăng ký
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(
-              color: Colors.black54, fontSize: 18), // Màu và kích cỡ chữ nhãn
+          labelStyle: TextStyle(color: Colors.black54, fontSize: 18),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide.none,
           ),
-          prefixIcon:
-              Icon(icon, color: Colors.black), // Biểu tượng cho trường nhập
+          prefixIcon: Icon(icon, color: Colors.black),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(
-              color: Colors.black, // Màu viền khi trường nhập được chọn
-            ),
+            borderSide: BorderSide(color: Colors.black),
           ),
         ),
         obscureText: obscureText,
+      ),
+    );
+  }
+
+  // Widget mới cho trường mật khẩu với tính năng hiển thị/ẩn
+  Widget _buildPasswordField() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 5,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _passwordController,
+        enabled: !_isLoading, // Khóa TextField khi đang xử lý đăng ký
+        decoration: InputDecoration(
+          labelText: 'Password',
+          labelStyle: TextStyle(color: Colors.black54, fontSize: 18),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
+          ),
+          prefixIcon: Icon(Icons.lock, color: Colors.black),
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              color: Colors.grey,
+            ),
+            onPressed: _isLoading
+                ? null
+                : () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.black),
+          ),
+        ),
+        obscureText: _obscurePassword,
       ),
     );
   }
@@ -198,19 +247,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: _register,
-        child: Text(
-          'Register',
-          style: TextStyle(color: Colors.white),
-        ),
+        onPressed:
+            _isLoading ? null : _register, // Vô hiệu hóa nút khi đang xử lý
+        child: _isLoading
+            ? CircularProgressIndicator(
+                color: Colors.white) // Hiển thị vòng xoay khi xử lý
+            : Text(
+                'Register',
+                style: TextStyle(color: Colors.white),
+              ),
         style: ElevatedButton.styleFrom(
           minimumSize: Size(double.infinity, 50),
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          textStyle: TextStyle(
-            fontSize: 18,
-            color: Colors.white,
-          ),
+          textStyle: TextStyle(fontSize: 18, color: Colors.white),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),

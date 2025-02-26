@@ -18,6 +18,8 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
   late ApiService apiService;
   UserModel? user;
   final TextEditingController _passwordController = TextEditingController();
+  // Thêm biến để kiểm soát hiển thị mật khẩu
+  bool _passwordVisible = false;
 
   @override
   void initState() {
@@ -40,59 +42,82 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
   }
 
   Future<void> confirmDeleteAccount() async {
+    // Reset giá trị ban đầu của _passwordVisible và _passwordController
+    setState(() {
+      _passwordVisible = false;
+      _passwordController.clear();
+    });
+
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Delete Account',
-              style: TextStyle(
-                  color: Colors.redAccent, fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Please enter your password to confirm account deletion:'),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
+      builder: (dialogContext) {
+        return StatefulBuilder(builder: (context, setStateDialog) {
+          return AlertDialog(
+            title: Text('Delete Account',
+                style: TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Please enter your password to confirm account deletion:'),
+                SizedBox(height: 10),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: !_passwordVisible,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _passwordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setStateDialog(() {
+                          _passwordVisible = !_passwordVisible;
+                        });
+                      },
+                    ),
+                  ),
                 ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final success = await apiService.deleteAccount(
+                    widget.userId,
+                    _passwordController.text,
+                  );
+
+                  Navigator.pop(context);
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Account deleted successfully')),
+                    );
+                    // Navigate to login screen and clear navigation stack
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                      '/login',
+                      (Route<dynamic> route) => false,
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to delete account')),
+                    );
+                  }
+                },
+                child:
+                    Text('Confirm', style: TextStyle(color: Colors.redAccent)),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final success = await apiService.deleteAccount(
-                  widget.userId,
-                  _passwordController.text,
-                );
-
-                Navigator.pop(context);
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Account deleted successfully')),
-                  );
-                  // Navigate to login screen and clear navigation stack
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/login',
-                    (Route<dynamic> route) => false,
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to delete account')),
-                  );
-                }
-              },
-              child: Text('Confirm', style: TextStyle(color: Colors.redAccent)),
-            ),
-          ],
-        );
+          );
+        });
       },
     );
   }

@@ -3,7 +3,7 @@ import 'package:app_neaker/models/order_model.dart';
 import 'package:http/http.dart' as http;
 
 class OrderService {
-  final String apiUrl = 'http://192.168.1.15:5002';
+  final String apiUrl = 'http://192.168.1.5:5002';
 
   Future<List<Order>> fetchOrders(String userId) async {
     try {

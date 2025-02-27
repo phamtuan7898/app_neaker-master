@@ -1,14 +1,16 @@
 import 'package:app_neaker/models/carts_model.dart';
+import 'package:app_neaker/models/comment_model.dart';
 import 'package:app_neaker/models/products_model.dart';
 import 'package:app_neaker/models/user_model.dart';
 import 'package:app_neaker/product_screen/comment_screen.dart';
 import 'package:app_neaker/service/cart_service.dart';
+import 'package:app_neaker/service/comment_service.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter/material.dart';
 
 class ProductDetail extends StatefulWidget {
   final ProductModel product;
-  final UserModel? user; // Make user parameter nullable
+  final UserModel? user;
 
   ProductDetail({
     required this.product,
@@ -22,6 +24,30 @@ class ProductDetail extends StatefulWidget {
 class _ProductDetailState extends State<ProductDetail> {
   String? selectedSize;
   String? selectedColor;
+  List<CommentModel> _comments = [];
+  bool _isLoading = true;
+  final CommentService _commentService = CommentService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadComments();
+  }
+
+  Future<void> _loadComments() async {
+    try {
+      final comments = await _commentService.getComments(widget.product.id);
+      setState(() {
+        _comments = comments;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading comments: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,9 +71,6 @@ class _ProductDetailState extends State<ProductDetail> {
       body: SingleChildScrollView(
         child: Container(
           padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-              // Existing decoration...
-              ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -57,30 +80,165 @@ class _ProductDetailState extends State<ProductDetail> {
               SizedBox(height: 10),
               _buildDescription(),
               SizedBox(height: 20),
-              _buildSizeSelector(), // Replace _buildAvailableSizes() with this
+              _buildSizeSelector(),
               SizedBox(height: 20),
-              _buildColorSelector(), // Replace _buildAvailableColors() with this
+              _buildColorSelector(),
               SizedBox(height: 30),
-              // Comment button and rest of your widget...
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CommentScreen(
-                        productId: widget.product.id,
-                        user: widget.user,
-                      ),
-                    ),
-                  );
-                },
-                child: Text('View Comments'),
-              ),
+              _buildCustomerReviewsSection(), // Hiển thị bình luận ở đây
             ],
           ),
         ),
       ),
       bottomNavigationBar: _buildAddToCartButton(context),
+    );
+  }
+
+  // Widget hiển thị phần bình luận
+  Widget _buildCustomerReviewsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Customer Reviews',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        SizedBox(height: 10),
+        _isLoading
+            ? Center(child: CircularProgressIndicator())
+            : _comments.isEmpty
+                ? Text('No reviews yet.')
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemCount: _comments.length,
+                    itemBuilder: (context, index) {
+                      return _buildCommentItem(_comments[index]);
+                    },
+                  ),
+      ],
+    );
+  }
+
+// Widget hiển thị một bình luận
+  Widget _buildCommentItem(CommentModel comment) {
+    return Card(
+      margin: EdgeInsets.symmetric(vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(comment.username,
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  _formatDate(comment.createdAt),
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ],
+            ),
+            SizedBox(height: 4),
+            RatingBarIndicator(
+              rating: comment.rating,
+              itemBuilder: (context, index) =>
+                  Icon(Icons.star, color: Colors.amber),
+              itemCount: 5,
+              itemSize: 16.0,
+              direction: Axis.horizontal,
+            ),
+            SizedBox(height: 8),
+            Text(comment.comment),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Hàm định dạng ngày tháng
+  String _formatDate(DateTime dateTime) {
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  }
+
+  // Widget cho nút xem reviews (chỉ ở chế độ xem)
+  Widget _buildViewReviewsButton() {
+    return Container(
+      width: double.infinity,
+      child: Card(
+        elevation: 3,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Customer Reviews',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.star, color: Colors.amber),
+                      SizedBox(width: 4),
+                      Text(
+                        '${widget.product.rating.toStringAsFixed(1)}',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      // Kiểm tra xem người dùng đã đăng nhập chưa
+                      if (widget.user != null) {
+                        // Nếu đã đăng nhập, cho phép thêm bình luận
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CommentScreen(
+                              productId: widget.product.id,
+                              user: widget.user,
+                              readOnly: false, // Cho phép thêm bình luận
+                            ),
+                          ),
+                        );
+                      } else {
+                        // Nếu chưa đăng nhập, hiển thị thông báo hoặc chuyển đến màn hình đăng nhập
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Please log in to add a review.'),
+                            action: SnackBarAction(
+                              label: 'Log In',
+                              onPressed: () {
+                                // Chuyển đến màn hình đăng nhập
+                                // Navigator.pushNamed(context, '/login');
+                              },
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[600],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(
+                      'View All Reviews',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -263,68 +421,6 @@ class _ProductDetailState extends State<ProductDetail> {
           style: TextStyle(fontSize: 16, color: Colors.grey[700]),
         ),
       ),
-    );
-  }
-
-  Widget _buildAvailableSizes() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Available sizes:',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        SizedBox(height: 8.0),
-        Wrap(
-          spacing: 8.0,
-          children: widget.product.size.map((size) {
-            return Chip(
-              label: Text(size),
-              backgroundColor: Colors.blue[100],
-              padding: EdgeInsets.all(8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              elevation: 2,
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAvailableColors() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Available colors:',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        SizedBox(height: 8.0),
-        Row(
-          children: widget.product.color.map((colorHex) {
-            Color color = Color(int.parse(colorHex));
-            return Container(
-              width: 30,
-              height: 30,
-              margin: EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: color,
-                border: Border.all(color: Colors.black54, width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-      ],
     );
   }
 

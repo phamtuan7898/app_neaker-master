@@ -7,8 +7,13 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 class CommentScreen extends StatefulWidget {
   final String productId;
   final UserModel? user;
+  final bool readOnly;
 
-  CommentScreen({required this.productId, required this.user});
+  CommentScreen({
+    required this.productId,
+    required this.user,
+    this.readOnly = true,
+  });
 
   @override
   _CommentScreenState createState() => _CommentScreenState();
@@ -45,14 +50,26 @@ class _CommentScreenState extends State<CommentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Comments')),
+      appBar: AppBar(
+        title: Text(widget.readOnly ? 'View Comments' : 'Write a Review'),
+        centerTitle: true,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.white24, Colors.lightBlueAccent.shade700],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              widget.user != null
+              !widget.readOnly && widget.user != null
                   ? _buildAddCommentForm()
                   : _buildLoginPrompt(),
               SizedBox(height: 20),

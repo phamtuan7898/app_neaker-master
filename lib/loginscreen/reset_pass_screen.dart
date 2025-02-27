@@ -39,7 +39,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         SnackBar(content: Text('Password was reset successfully')),
       );
 
-      Navigator.of(context).pushReplacementNamed('/login');
+      // Chuyển về trang đăng nhập sau khi reset mật khẩu thành công
+      Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),

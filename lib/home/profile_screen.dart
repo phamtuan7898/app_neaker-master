@@ -122,6 +122,34 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
     );
   }
 
+  // Thêm hàm confirmSignOut để hiển thị dialog xác nhận
+  Future<void> confirmSignOut() async {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Sign Out',
+              style:
+                  TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+          content: Text('Are you sure you want to sign out?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context); // Đóng dialog
+                await signOut(); // Thực hiện đăng xuất
+              },
+              child: Text('Sign Out', style: TextStyle(color: Colors.blue)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> signOut() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -260,7 +288,7 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
             ListTile(
               leading: Icon(Icons.logout, color: Colors.blue),
               title: Text('Sign Out', style: TextStyle(fontSize: 16)),
-              onTap: signOut,
+              onTap: confirmSignOut, // Thay đổi từ signOut sang confirmSignOut
             ),
           ],
         ),

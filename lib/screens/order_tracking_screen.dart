@@ -1,3 +1,4 @@
+import 'package:app_neaker/product_screen/comment_screen.dart';
 import 'package:app_neaker/service/auth_service%20.dart';
 import 'package:app_neaker/service/order_service.dart';
 import 'package:flutter/material.dart';
@@ -224,6 +225,37 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       ),
                     ),
                   ],
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+            // Thêm nút để viết comment cho sản phẩm đã mua
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  icon: Icon(Icons.comment, color: Colors.blue),
+                  label: Text('Write a review',
+                      style: TextStyle(color: Colors.blue)),
+                  onPressed: () async {
+                    final user = await _authService.getCurrentUser();
+                    if (user != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CommentScreen(
+                            productId: item.productId,
+                            user: user,
+                            readOnly: false, // Cho phép viết bình luận
+                          ),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Please login to comment')),
+                      );
+                    }
+                  },
                 ),
               ],
             ),

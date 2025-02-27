@@ -1,18 +1,18 @@
 class OrderItem {
-  final String productId;
   final String productName;
   final String price;
   final int quantity;
   final String size;
   final String color;
+  final String productId; // Thêm trường này nếu chưa có
 
   OrderItem({
-    required this.productId,
     required this.productName,
     required this.price,
     required this.quantity,
     required this.size,
     required this.color,
+    required this.productId, // Thêm vào constructor
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {

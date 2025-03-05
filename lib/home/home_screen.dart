@@ -57,66 +57,74 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'HOME',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.white24, Colors.lightBlueAccent.shade700],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+    return WillPopScope(
+      onWillPop: () async => false, // Ngăn hành động quay lại
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false, // Tắt nút back mặc định
+          title: const Text(
+            'HOME',
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.search,
-              color: Colors.white,
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SearchScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-      body: FutureBuilder<List<ProductModel>>(
-        future: _productsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('An error occurred: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No products available.'));
-          } else {
-            final products = snapshot.data!;
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10.0),
-                    child: _buildPromotionsBanner(products),
-                  ),
-                  _buildCategoryTitle('Featured Products'),
-                  _buildHighlightedSection(products),
-                  _buildCategoryTitle('Product Catalog'),
-                  _buildCategorySection(products, 'Running shoes'),
-                  _buildCategorySection(products, 'Casual shoes'),
-                ],
+          centerTitle: true,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.white24, Colors.lightBlueAccent.shade700],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            );
-          }
-        },
+            ),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(
+                Icons.search,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SearchScreen()),
+                );
+              },
+            ),
+          ],
+        ),
+        body: FutureBuilder<List<ProductModel>>(
+          future: _productsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(
+                  child: Text('An error occurred: ${snapshot.error}'));
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text('No products available.'));
+            } else {
+              final products = snapshot.data!;
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10.0),
+                      child: _buildPromotionsBanner(products),
+                    ),
+                    _buildCategoryTitle('Featured Products'),
+                    _buildHighlightedSection(products),
+                    _buildCategoryTitle('Product Catalog'),
+                    _buildCategorySection(products, 'Running shoes'),
+                    SizedBox(
+                      height: 10,
+                    ),
+                    _buildCategorySection(products, 'Casual shoes'),
+                  ],
+                ),
+              );
+            }
+          },
+        ),
       ),
     );
   }

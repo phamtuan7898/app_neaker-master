@@ -231,7 +231,7 @@ class _CartScreenState extends State<CartScreen> {
     if (currentUser == null || isUpdating) return;
 
     if (newQuantity < 1) {
-      _showErrorMessage('Quantity cannot be less than 1');
+      _showErrorMessage('Số lượng không thể nhỏ hơn 1');
       return;
     }
 
@@ -254,10 +254,10 @@ class _CartScreenState extends State<CartScreen> {
         }
       });
 
-      _showSuccessMessage('Quantity updated');
+      _showSuccessMessage('Đã cập nhật số lượng');
     } catch (e) {
-      print('Error updating cart item quantity: $e');
-      _showErrorMessage('Unable to update quantity');
+      print('Lỗi cập nhật số lượng sản phẩm: $e');
+      _showErrorMessage('Không thể cập nhật số lượng');
       // Khôi phục lại số lượng cũ nếu cập nhật thất bại
       setState(() {
         final index = cartItems.indexWhere((i) => i.id == item.id);
@@ -361,6 +361,100 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
+  Future<void> _processSingleItemPayment(CartItem item) async {
+    if (currentUser == null) return;
+
+    // Kiểm tra xem người dùng đã có địa chỉ và số điện thoại hay chưa
+    if (_hasAddress && _phoneController.text.trim().isNotEmpty) {
+      bool? confirmPayment = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Xác nhận thanh toán'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Thông tin giao hàng:'),
+                  SizedBox(height: 8),
+                  Text('Số điện thoại: ${_phoneController.text.trim()}'),
+                  SizedBox(height: 4),
+                  Text('Địa chỉ: ${_addressController.text.trim()}'),
+                  SizedBox(height: 12),
+                  Text(
+                    'Sản phẩm: ${item.productName}',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Số lượng: ${item.quantity}',
+                  ),
+                  Text(
+                    'Tổng tiền: ${currencyFormatter.format(parsePrice(item.price) * item.quantity)}',
+                  ),
+                  SizedBox(height: 8),
+                  Text('Bạn có chắc chắn muốn mua sản phẩm này?'),
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text('Hủy'),
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                },
+              ),
+              TextButton(
+                child: Text('Xác nhận'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.blue,
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                },
+              ),
+            ],
+          );
+        },
+      );
+
+      // Nếu người dùng xác nhận thanh toán
+      if (confirmPayment == true) {
+        setState(() {
+          isLoading = true;
+        });
+
+        try {
+          final success = await _cartService.processPayment(
+            currentUser!.id,
+            [item], // Chỉ truyền một sản phẩm duy nhất
+            parsePrice(item.price) * item.quantity,
+            _phoneController.text.trim(),
+            _addressController.text.trim(),
+          );
+
+          if (success) {
+            // Xóa sản phẩm khỏi giỏ hàng sau khi thanh toán thành công
+            setState(() {
+              cartItems.remove(item);
+            });
+            _showSuccessMessage('Thanh toán thành công');
+          }
+        } catch (e) {
+          _showErrorMessage('Thanh toán thất bại: ${e.toString()}');
+        } finally {
+          setState(() {
+            isLoading = false;
+          });
+        }
+      }
+    } else {
+      // Nếu không có địa chỉ hoặc số điện thoại, hiển thị dialog để nhập thông tin
+      await _showContactDialog();
+    }
+  }
+
   void _showErrorMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -413,16 +507,22 @@ class _CartScreenState extends State<CartScreen> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: Text('CART')),
-        body: Center(child: CircularProgressIndicator()),
+      return WillPopScope(
+        onWillPop: () async => false,
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text('CART'),
+            automaticallyImplyLeading: false, // Ẩn nút back trên AppBar
+          ),
+          body: Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'CART',
+          'GIỎ HÀNG',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
@@ -438,7 +538,7 @@ class _CartScreenState extends State<CartScreen> {
       ),
       body: cartItems.isEmpty
           ? Center(
-              child: Text('Cart is empty', style: TextStyle(fontSize: 18)),
+              child: Text('Giỏ hàng trống', style: TextStyle(fontSize: 18)),
             )
           : ListView.builder(
               itemCount: cartItems.length,
@@ -449,81 +549,105 @@ class _CartScreenState extends State<CartScreen> {
                   elevation: 4,
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.productName,
-                                style: TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Price: ${currencyFormatter.format(parsePrice(item.price))}',
-                                style: TextStyle(
-                                    fontSize: 16, color: Colors.blueAccent),
-                              ),
-                              SizedBox(height: 4),
-                              // Thêm dòng hiển thị size và color
-                              Row(
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade200,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      'Size: ${item.size}',
-                                      style: TextStyle(fontSize: 14),
-                                    ),
+                                  Text(
+                                    item.productName,
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold),
                                   ),
-                                  SizedBox(width: 8),
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade200,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Text(
-                                          'Color: ',
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Giá: ${currencyFormatter.format(parsePrice(item.price))}',
+                                    style: TextStyle(
+                                        fontSize: 16, color: Colors.blueAccent),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade200,
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          'Size: ${item.size}',
                                           style: TextStyle(fontSize: 14),
                                         ),
-                                        Container(
-                                          width: 14,
-                                          height: 14,
-                                          decoration: BoxDecoration(
-                                            color: _getColorFromHex(item.color),
-                                            border:
-                                                Border.all(color: Colors.grey),
-                                            borderRadius:
-                                                BorderRadius.circular(7),
-                                          ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade200,
+                                          borderRadius:
+                                              BorderRadius.circular(4),
                                         ),
-                                      ],
-                                    ),
+                                        child: Row(
+                                          children: [
+                                            Text(
+                                              'Màu: ',
+                                              style: TextStyle(fontSize: 14),
+                                            ),
+                                            Container(
+                                              width: 14,
+                                              height: 14,
+                                              decoration: BoxDecoration(
+                                                color: _getColorFromHex(
+                                                    item.color),
+                                                border: Border.all(
+                                                    color: Colors.grey),
+                                                borderRadius:
+                                                    BorderRadius.circular(7),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                        Column(
-                          children: [
-                            _buildQuantityControls(item),
-                            IconButton(
-                              icon: Icon(Icons.delete, color: Colors.grey),
-                              onPressed: isUpdating
-                                  ? null
-                                  : () => _removeCartItem(item),
+                            ),
+                            Column(
+                              children: [
+                                _buildQuantityControls(item),
+                                Row(
+                                  children: [
+                                    ElevatedButton(
+                                      onPressed: isLoading
+                                          ? null
+                                          : () =>
+                                              _processSingleItemPayment(item),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green,
+                                        minimumSize: Size(80, 36),
+                                      ),
+                                      child: Text('Mua riêng'),
+                                    ),
+                                    SizedBox(width: 8),
+                                    IconButton(
+                                      icon: Icon(Icons.delete,
+                                          color: Colors.grey),
+                                      onPressed: isUpdating
+                                          ? null
+                                          : () => _removeCartItem(item),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -630,10 +754,10 @@ class _CartScreenState extends State<CartScreen> {
       setState(() {
         cartItems.remove(item);
       });
-      _showSuccessMessage('Product removed from cart');
+      _showSuccessMessage('Đã xóa sản phẩm khỏi giỏ hàng');
     } catch (e) {
-      print('Error removing cart item: $e');
-      _showErrorMessage('Cannot delete product');
+      print('Lỗi xóa sản phẩm: $e');
+      _showErrorMessage('Không thể xóa sản phẩm');
     }
   }
 

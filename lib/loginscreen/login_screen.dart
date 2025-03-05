@@ -42,11 +42,10 @@ class _LoginScreenState extends State<LoginScreen> {
       await Future.delayed(Duration(milliseconds: 1000));
 
       if (user != null) {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(
-            builder: (context) => MainScreen(userId: user.id),
-          ),
+          MaterialPageRoute(builder: (context) => MainScreen(userId: user.id)),
+          (Route<dynamic> route) => false, // Xóa tất cả các trang trước đó
         );
       }
     } catch (e) {
@@ -73,90 +72,94 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Log in'),
-        centerTitle: true,
-        backgroundColor: Colors.white24,
-        foregroundColor: Colors.black,
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.white24,
-              Colors.lightBlueAccent.shade700,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+    return WillPopScope(
+      onWillPop: () async => false, // Vô hiệu hóa nút quay lại vật lý
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Log in'),
+          centerTitle: true,
+          backgroundColor: Colors.white24,
+          foregroundColor: Colors.black,
+          automaticallyImplyLeading: false, // Ẩn nút back trên AppBar
         ),
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Center(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  AnimatedOpacity(
-                    opacity: 1.0,
-                    duration: Duration(seconds: 1),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black, width: 3),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 10.0,
-                            spreadRadius: 2.0,
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.white24,
+                Colors.lightBlueAccent.shade700,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AnimatedOpacity(
+                      opacity: 1.0,
+                      duration: Duration(seconds: 1),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.black, width: 3),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 10.0,
+                              spreadRadius: 2.0,
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/img_logo/modern-sneaker-shoe-logo-vector.jpg',
+                            width: 150,
+                            height: 150,
                           ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: Image.asset(
-                          'assets/img_logo/modern-sneaker-shoe-logo-vector.jpg',
-                          width: 150,
-                          height: 150,
                         ),
                       ),
                     ),
-                  ),
-                  SizedBox(height: 20),
-                  _buildTextField(
-                    controller: _inputController,
-                    label: 'Username or Email',
-                    icon: Icons.person,
-                    enabled: !_isLoggingIn, // Vô hiệu hóa khi đang đăng nhập
-                  ),
-                  SizedBox(height: 16),
-                  _buildPasswordField(), // Sử dụng widget riêng cho trường mật khẩu
-                  SizedBox(height: 20),
-                  _buildElevatedButton(),
-                  SizedBox(height: 10),
-                  TextButton(
-                    onPressed: _isLoggingIn
-                        ? null // Vô hiệu hóa khi đang đăng nhập
-                        : () {
-                            Navigator.pushNamed(context, '/forgot-password');
-                          },
-                    child: Text('Forgot Password?',
-                        style: TextStyle(
-                            color: _isLoggingIn ? Colors.grey : Colors.black,
-                            fontSize: 16)),
-                  ),
-                  TextButton(
-                    onPressed: _isLoggingIn
-                        ? null // Vô hiệu hóa khi đang đăng nhập
-                        : () {
-                            Navigator.pushNamed(context, '/register');
-                          },
-                    child: Text('Register',
-                        style: TextStyle(
-                            color: _isLoggingIn ? Colors.grey : Colors.black,
-                            fontSize: 16)),
-                  ),
-                ],
+                    SizedBox(height: 20),
+                    _buildTextField(
+                      controller: _inputController,
+                      label: 'Username or Email',
+                      icon: Icons.person,
+                      enabled: !_isLoggingIn,
+                    ),
+                    SizedBox(height: 16),
+                    _buildPasswordField(),
+                    SizedBox(height: 20),
+                    _buildElevatedButton(),
+                    SizedBox(height: 10),
+                    TextButton(
+                      onPressed: _isLoggingIn
+                          ? null
+                          : () {
+                              Navigator.pushNamed(context, '/forgot-password');
+                            },
+                      child: Text('Forgot Password?',
+                          style: TextStyle(
+                              color: _isLoggingIn ? Colors.grey : Colors.black,
+                              fontSize: 16)),
+                    ),
+                    TextButton(
+                      onPressed: _isLoggingIn
+                          ? null
+                          : () {
+                              Navigator.pushNamed(context, '/register');
+                            },
+                      child: Text('Register',
+                          style: TextStyle(
+                              color: _isLoggingIn ? Colors.grey : Colors.black,
+                              fontSize: 16)),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

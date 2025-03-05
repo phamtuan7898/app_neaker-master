@@ -5,8 +5,8 @@ class CartItem {
   String productName;
   String price;
   int quantity;
-  String size; 
-  String color; 
+  String size;
+  String color;
 
   CartItem({
     required this.id,

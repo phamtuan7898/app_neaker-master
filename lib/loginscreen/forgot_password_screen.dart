@@ -12,6 +12,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final AuthService _authService = AuthService();
   bool _isProcessing = false; // Trạng thái xử lý
 
+  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -19,30 +21,40 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   void _checkUserAndResetPassword() async {
-    setState(() {
-      _isProcessing = true; // Bắt đầu xử lý
-    });
+    final email = _emailController.text.trim();
 
-    final emailOrUsername = _emailController.text;
-    if (emailOrUsername.isEmpty) {
+    // Kiểm tra email rỗng
+    if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please enter email or username'),
+          content: Text('Vui lòng nhập email'),
           backgroundColor: Colors.red,
         ),
       );
-      setState(() {
-        _isProcessing = false; // Dừng xử lý nếu lỗi
-      });
       return;
     }
 
+    // Kiểm tra email hợp lệ
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Vui lòng nhập email hợp lệ'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isProcessing = true;
+    });
+
     try {
-      final result = await _authService.checkUser(emailOrUsername);
+      final result = await _authService.checkUser(email);
       if (result['success']) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Email verified successfully! Redirecting...'),
+            content: Text('Email đã được xác minh! Đang chuyển hướng...'),
             backgroundColor: Colors.green,
           ),
         );
@@ -66,7 +78,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
 
     setState(() {
-      _isProcessing = false; // Hoàn tất xử lý
+      _isProcessing = false;
     });
   }
 

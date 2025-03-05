@@ -1,6 +1,9 @@
+import 'package:app_neaker/home/cart_screen.dart';
+import 'package:app_neaker/models/carts_model.dart';
 import 'package:app_neaker/product_screen/comment_screen.dart';
 import 'package:app_neaker/service/auth_service%20.dart';
 import 'package:app_neaker/service/order_service.dart';
+import 'package:app_neaker/service/cart_service.dart'; // Thêm import CartService
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/order_model.dart';
@@ -13,6 +16,7 @@ class OrderTrackingScreen extends StatefulWidget {
 class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   final OrderService _orderService = OrderService();
   final AuthService _authService = AuthService();
+  final CartService _cartService = CartService(); // Khởi tạo CartService
   List<Order> orders = [];
   bool isLoading = true;
 
@@ -52,6 +56,15 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void _showSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
       ),
     );
   }
@@ -229,7 +242,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               ],
             ),
             SizedBox(height: 12),
-            // Thêm nút để viết comment cho sản phẩm đã mua
+            // Thêm nút để viết comment và mua lại
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -246,7 +259,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                           builder: (context) => CommentScreen(
                             productId: item.productId,
                             user: user,
-                            readOnly: false, // Cho phép viết bình luận
+                            readOnly: false,
                           ),
                         ),
                       );
@@ -257,6 +270,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                     }
                   },
                 ),
+                SizedBox(width: 8),
+                TextButton.icon(
+                  icon: Icon(Icons.refresh, color: Colors.green),
+                  label:
+                      Text('Buy Again', style: TextStyle(color: Colors.green)),
+                  onPressed: () => _buyAgain(item),
+                ),
               ],
             ),
           ],
@@ -265,27 +285,57 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     );
   }
 
-  // Helper method to convert color value to Color object
+  Future<void> _buyAgain(OrderItem item) async {
+    final user = await _authService.getCurrentUser();
+    if (user == null) {
+      _showErrorMessage('Please login to buy again');
+      return;
+    }
+
+    // Create CartItem from OrderItem
+    final cartItem = CartItem(
+      id: '', // MongoDB will auto-generate
+      userId: user.id,
+      productId: item.productId,
+      productName: item.productName,
+      price: item.price,
+      quantity: item.quantity,
+      size: item.size,
+      color: item.color,
+    );
+
+    try {
+      await _cartService.addCartItem(user.id, cartItem);
+
+      // Navigate to Cart Screen and wait for result
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CartScreen(),
+        ),
+      );
+
+      // If returned from CartScreen, reload orders
+      await _loadOrders();
+    } catch (e) {
+      _showErrorMessage('Failed to add ${item.productName} to cart');
+      print('Error adding to cart: $e');
+    }
+  }
+
   Color _getColorFromHex(String colorValue) {
-    // If color is stored as a name
     if (colorValue.toLowerCase() == 'red') return Colors.red;
     if (colorValue.toLowerCase() == 'blue') return Colors.blue;
-    // ... other named colors
-
-    // If color is stored as an integer value as string
     try {
       int colorInt = int.parse(colorValue);
       return Color(colorInt);
     } catch (e) {
-      // If parsing fails, try to handle as a hex string
       if (colorValue.startsWith('#')) {
         colorValue = colorValue.substring(1);
       }
-
       try {
         return Color(int.parse('0xFF$colorValue'));
       } catch (e) {
-        // Return a default color if all parsing attempts fail
         return Colors.grey;
       }
     }

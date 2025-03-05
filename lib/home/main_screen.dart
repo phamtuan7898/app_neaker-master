@@ -19,9 +19,18 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _screens = [
-      HomeScreen(),
-      CartScreen(),
-      ProfileViewScreen(userId: widget.userId), // Passing the userId here
+      WillPopScope(
+        onWillPop: () async => false,
+        child: HomeScreen(),
+      ),
+      WillPopScope(
+        onWillPop: () async => false,
+        child: CartScreen(),
+      ),
+      WillPopScope(
+        onWillPop: () async => false,
+        child: ProfileViewScreen(userId: widget.userId),
+      ),
     ];
   }
 
@@ -36,6 +45,7 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
+        // Giữ nguyên phần bottom navigation bar
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),

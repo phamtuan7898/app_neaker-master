@@ -3,6 +3,7 @@ import 'package:app_neaker/models/comment_model.dart';
 import 'package:app_neaker/models/products_model.dart';
 import 'package:app_neaker/models/user_model.dart';
 import 'package:app_neaker/product_screen/comment_screen.dart';
+import 'package:app_neaker/product_screen/view_comments_screen.dart';
 import 'package:app_neaker/service/cart_service.dart';
 import 'package:app_neaker/service/comment_service.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
@@ -103,23 +104,33 @@ class _ProductDetailState extends State<ProductDetail> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         SizedBox(height: 10),
-        _isLoading
-            ? Center(child: CircularProgressIndicator())
-            : _comments.isEmpty
-                ? Text('No reviews yet.')
-                : ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: _comments.length,
-                    itemBuilder: (context, index) {
-                      return _buildCommentItem(_comments[index]);
-                    },
-                  ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ViewCommentsScreen(
+                  productId: widget.product.id,
+                ),
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue[600],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: Text(
+            'View All Reviews',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
       ],
     );
   }
 
-// Widget hiển thị một bình luận
+  // Widget hiển thị một bình luận
   Widget _buildCommentItem(CommentModel comment) {
     return Card(
       margin: EdgeInsets.symmetric(vertical: 8),

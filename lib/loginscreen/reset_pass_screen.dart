@@ -1,3 +1,4 @@
+import 'package:app_neaker/loginscreen/login_screen.dart';
 import 'package:app_neaker/service/auth_service%20.dart';
 import 'package:flutter/material.dart';
 
@@ -19,10 +20,35 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   void _resetPassword() async {
+    // Kiểm tra password rỗng
+    if (_passwordController.text.isEmpty ||
+        _confirmPasswordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Vui lòng nhập đầy đủ mật khẩu')),
+      );
+      return;
+    }
+
+    // Kiểm tra password trùng khớp
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Passwords do not match')),
+        SnackBar(content: Text('Mật khẩu không khớp')),
+      );
+      return;
+    }
+
+    // Kiểm tra độ dài password
+    if (_passwordController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Mật khẩu phải có ít nhất 6 ký tự')),
       );
       return;
     }
@@ -36,11 +62,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Password was reset successfully')),
+        SnackBar(content: Text('Đặt lại mật khẩu thành công')),
       );
 
-      // Chuyển về trang đăng nhập sau khi reset mật khẩu thành công
-      Navigator.pushReplacementNamed(context, '/login');
+      // Sử dụng pushReplacement để loại bỏ nút back
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (context) => LoginScreen()));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
@@ -54,7 +81,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Reset Password'),
+        title: Text('Đặt Lại Mật Khẩu'),
         centerTitle: true,
         backgroundColor: Colors.white24,
         foregroundColor: Colors.black,
@@ -74,7 +101,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             children: [
               _buildTextField(
                 controller: _passwordController,
-                label: 'New Password',
+                label: 'Mật Khẩu Mới',
                 isPassword: _obscurePassword,
                 togglePasswordVisibility: () {
                   setState(() {
@@ -86,7 +113,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               SizedBox(height: 16),
               _buildTextField(
                 controller: _confirmPasswordController,
-                label: 'Confirm Password',
+                label: 'Xác Nhận Mật Khẩu',
                 isPassword: _obscureConfirmPassword,
                 togglePasswordVisibility: () {
                   setState(() {
@@ -100,7 +127,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ? CircularProgressIndicator()
                   : ElevatedButton(
                       onPressed: _resetPassword,
-                      child: Text('Reset Password'),
+                      child: Text('Đặt Lại Mật Khẩu'),
                       style: ElevatedButton.styleFrom(
                         minimumSize: Size(double.infinity, 50),
                         backgroundColor: Colors.blue,
@@ -138,6 +165,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         enabled: enabled,
         decoration: InputDecoration(
           labelText: label,
+          labelStyle: TextStyle(color: Colors.black54),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide.none,

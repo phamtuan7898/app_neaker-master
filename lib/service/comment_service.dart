@@ -3,7 +3,7 @@ import 'package:app_neaker/models/comment_model.dart';
 import 'package:http/http.dart' as http;
 
 class CommentService {
-  final String apiUrl = 'http://192.168.1.16:5002';
+  final String apiUrl = 'http://192.168.1.20:5002';
 
   // Thêm bình luận mới
   Future<CommentModel> addComment(

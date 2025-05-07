@@ -84,7 +84,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         backgroundColor: Colors.white12,
         foregroundColor: Colors.black,
       ),
-      body: Container(
+      body: Container(  
         padding: EdgeInsets.all(16.0),
         decoration: BoxDecoration(
           gradient: LinearGradient(

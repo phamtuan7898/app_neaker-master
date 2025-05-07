@@ -75,13 +75,6 @@ class _LoginScreenState extends State<LoginScreen> {
     return WillPopScope(
       onWillPop: () async => false, // Vô hiệu hóa nút quay lại vật lý
       child: Scaffold(
-        appBar: AppBar(
-          title: Text('Log in'),
-          centerTitle: true,
-          backgroundColor: Colors.white24,
-          foregroundColor: Colors.black,
-          automaticallyImplyLeading: false, // Ẩn nút back trên AppBar
-        ),
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(

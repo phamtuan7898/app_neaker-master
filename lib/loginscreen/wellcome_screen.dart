@@ -12,6 +12,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
   late Animation<Offset> _slideAnimation;
+  late Animation<double> _rotateAnimation;
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _waveAnimation;
 
   @override
   void initState() {
@@ -39,7 +42,28 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
 
-    _controller.forward();
+    // Rotate animation for logo
+    _rotateAnimation = Tween<double>(begin: 0, end: 0.1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutBack),
+    );
+
+    // Pulse animation for title
+    _pulseAnimation = Tween<double>(begin: 1, end: 1.05).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Interval(0.5, 1.0, curve: Curves.easeInOut),
+      ),
+    );
+
+    // Wave animation for progress indicator
+    _waveAnimation = Tween<double>(begin: 0.8, end: 1.2).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOutSine,
+      ),
+    );
+
+    _controller.repeat(reverse: true);
 
     // Navigate to LoginScreen after 4 seconds
     Future.delayed(Duration(seconds: 4), () {
@@ -63,33 +87,22 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       body: Center(
         child: Stack(
           children: [
-            // Background gradient with richer colors
-            Container(
-              width: double.infinity,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.center,
-                  radius: 1.2,
-                  colors: [
-                    Colors.blueAccent.shade100,
-                    Colors.deepPurpleAccent.shade700,
-                  ],
-                ),
-              ),
-            ),
-            // Gradient overlay for better contrast
-            Container(
+            // Animated background gradient
+            AnimatedContainer(
+              duration: Duration(seconds: 3),
               width: double.infinity,
               height: double.infinity,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.4),
-                    Colors.transparent,
+                    Colors.lightBlueAccent.withOpacity(0.3),
+                    Colors.lightBlueAccent.shade700,
+                    Colors.blue.shade900,
                   ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  stops: [0.0, 0.5, 1.0],
+                  transform: GradientRotation(_controller.value * 2 * 3.14),
                 ),
               ),
             ),
@@ -99,35 +112,38 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 opacity: _fadeAnimation,
                 child: ScaleTransition(
                   scale: _scaleAnimation,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.5),
-                          blurRadius: 15.0,
-                          spreadRadius: 3.0,
-                          offset: Offset(0, 5),
+                  child: RotationTransition(
+                    turns: _rotateAnimation,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.5),
+                            blurRadius: 15.0,
+                            spreadRadius: 3.0,
+                            offset: Offset(0, 5),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.8),
+                          width: 4,
                         ),
-                      ],
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.8),
-                        width: 4,
+                        shape: BoxShape.circle,
                       ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: ClipOval(
-                      child: Image.asset(
-                        'assets/img_logo/modern-sneaker-shoe-logo-vector.jpg',
-                        width: 180,
-                        height: 180,
-                        fit: BoxFit.cover,
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/img_logo/modern-sneaker-shoe-logo-vector.jpg',
+                          width: 180,
+                          height: 180,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-            // Animated title text with slide effect
+            // Animated title text with slide and pulse effect
             Positioned(
               top: MediaQuery.of(context).size.height * 0.18,
               left: MediaQuery.of(context).size.width * 0.1,
@@ -136,29 +152,32 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 position: _slideAnimation,
                 child: FadeTransition(
                   opacity: _fadeAnimation,
-                  child: Text(
-                    'SneaSto',
-                    style: TextStyle(
-                      fontSize: 60.0,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      fontFamily: 'Pacifico',
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withOpacity(0.5),
-                          blurRadius: 10,
-                          offset: Offset(2, 2),
-                        ),
-                      ],
+                  child: ScaleTransition(
+                    scale: _pulseAnimation,
+                    child: Text(
+                      'SneaSto',
+                      style: TextStyle(
+                        fontSize: 60.0,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        fontFamily: 'Pacifico',
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.5),
+                            blurRadius: 10,
+                            offset: Offset(2, 2),
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
             ),
             // Animated subtitle text with slide effect
             Positioned(
-              top: MediaQuery.of(context).size.height * 0.33,
+              top: MediaQuery.of(context).size.height * 0.30,
               left: MediaQuery.of(context).size.width * 0.1,
               right: MediaQuery.of(context).size.width * 0.1,
               child: SlideTransition(
@@ -179,16 +198,19 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 ),
               ),
             ),
-            // Animated circular progress indicator with smoother effect
+            // Animated circular progress indicator with wave effect
             Positioned(
               bottom: 60.0,
               left: MediaQuery.of(context).size.width * 0.45,
               child: FadeTransition(
                 opacity: _fadeAnimation,
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 3.0,
-                  backgroundColor: Colors.white.withOpacity(0.3),
+                child: ScaleTransition(
+                  scale: _waveAnimation,
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    strokeWidth: 3.0,
+                    backgroundColor: Colors.white.withOpacity(0.3),
+                  ),
                 ),
               ),
             ),

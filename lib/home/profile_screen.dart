@@ -18,7 +18,6 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
   late ApiService apiService;
   UserModel? user;
   final TextEditingController _passwordController = TextEditingController();
-  // Thêm biến để kiểm soát hiển thị mật khẩu
   bool _passwordVisible = false;
 
   @override
@@ -42,7 +41,6 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
   }
 
   Future<void> confirmDeleteAccount() async {
-    // Reset giá trị ban đầu của _passwordVisible và _passwordController
     setState(() {
       _passwordVisible = false;
       _passwordController.clear();
@@ -101,7 +99,6 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Account deleted successfully')),
                     );
-                    // Navigate to login screen and clear navigation stack
                     Navigator.of(context).pushNamedAndRemoveUntil(
                       '/login',
                       (Route<dynamic> route) => false,
@@ -122,7 +119,6 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
     );
   }
 
-  // Thêm hàm confirmSignOut để hiển thị dialog xác nhận
   Future<void> confirmSignOut() async {
     showDialog(
       context: context,
@@ -139,8 +135,8 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
             ),
             TextButton(
               onPressed: () async {
-                Navigator.pop(context); // Đóng dialog
-                await signOut(); // Thực hiện đăng xuất
+                Navigator.pop(context);
+                await signOut();
               },
               child: Text('Sign Out', style: TextStyle(color: Colors.blue)),
             ),
@@ -176,64 +172,110 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
               ),
             ),
           ),
-          automaticallyImplyLeading: false, // Ẩn nút back trên AppBar
+          automaticallyImplyLeading: false,
         ),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: ListView(
             children: [
               if (user != null) ...[
-                CircleAvatar(
-                  radius: 60,
-                  backgroundImage: user!.img != null && user!.img!.isNotEmpty
-                      ? NetworkImage('${apiService.baseUrl}/${user!.img}')
-                      : null,
-                  backgroundColor: Colors.grey[300],
-                  child: user!.img == null
-                      ? Icon(Icons.person, size: 60, color: Colors.white)
-                      : null,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  user!.username ?? '',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.w600,
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.3),
+                                spreadRadius: 2,
+                                blurRadius: 5,
+                                offset: Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: 70,
+                            backgroundImage:
+                                user!.img != null && user!.img!.isNotEmpty
+                                    ? NetworkImage(
+                                        '${apiService.baseUrl}/${user!.img}')
+                                    : null,
+                            backgroundColor: Colors.grey[300],
+                            child: user!.img == null
+                                ? Icon(Icons.person,
+                                    size: 70, color: Colors.white)
+                                : null,
+                          ),
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          user!.username ?? 'N/A',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          user!.email ?? 'N/A',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                            fontStyle: FontStyle.italic,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 16),
+                        Divider(color: Colors.grey[300]),
+                        SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.phone, color: Colors.blue, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              user!.phone ?? 'N/A',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.location_on,
+                                color: Colors.blue, size: 20),
+                            SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                user!.address ?? 'N/A',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.black87,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                SizedBox(height: 4),
-                Text(
-                  user!.email ?? '',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 20, color: Colors.grey[600]),
-                ),
                 SizedBox(height: 20),
-                Divider(color: Colors.grey[400]),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Phone: ${user!.phone ?? ''}',
-                      style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.black,
-                          fontWeight: FontWeight.w600),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Address: ${user!.address ?? ''}',
-                      style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.black,
-                          fontWeight: FontWeight.w600),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20),
-                Divider(color: Colors.grey[400]),
               ],
               ListTile(
                 leading: Icon(Icons.edit),
@@ -250,7 +292,7 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
                     ),
                   );
                   if (result == true) {
-                    fetchUserProfile(); // Refresh the profile data after editing
+                    fetchUserProfile();
                   }
                 },
               ),
@@ -291,8 +333,7 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
               ListTile(
                 leading: Icon(Icons.logout, color: Colors.blue),
                 title: Text('Sign Out', style: TextStyle(fontSize: 16)),
-                onTap:
-                    confirmSignOut, // Thay đổi từ signOut sang confirmSignOut
+                onTap: confirmSignOut,
               ),
             ],
           ),

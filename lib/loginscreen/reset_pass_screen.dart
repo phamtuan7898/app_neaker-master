@@ -102,6 +102,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               _buildTextField(
                 controller: _passwordController,
                 label: 'Mật Khẩu Mới',
+                icon: Icons.lock,
                 isPassword: _obscurePassword,
                 togglePasswordVisibility: () {
                   setState(() {
@@ -114,6 +115,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               _buildTextField(
                 controller: _confirmPasswordController,
                 label: 'Xác Nhận Mật Khẩu',
+                icon: Icons.lock,
                 isPassword: _obscureConfirmPassword,
                 togglePasswordVisibility: () {
                   setState(() {
@@ -123,16 +125,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 enabled: !_isLoading,
               ),
               SizedBox(height: 24),
-              _isLoading
-                  ? CircularProgressIndicator()
-                  : ElevatedButton(
-                      onPressed: _resetPassword,
-                      child: Text('Đặt Lại Mật Khẩu'),
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: Size(double.infinity, 50),
-                        backgroundColor: Colors.blue,
-                      ),
-                    ),
+              _buildElevatedButton(),
             ],
           ),
         ),
@@ -143,6 +136,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
+    required IconData icon,
     bool isPassword = false,
     VoidCallback? togglePasswordVisibility,
     bool enabled = true,
@@ -165,11 +159,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         enabled: enabled,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Colors.black54),
+          labelStyle: TextStyle(color: Colors.black54, fontSize: 18),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide.none,
           ),
+          prefixIcon: Icon(icon, color: Colors.black),
           suffixIcon: togglePasswordVisibility != null
               ? IconButton(
                   icon: Icon(
@@ -179,6 +174,48 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   onPressed: togglePasswordVisibility,
                 )
               : null,
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.black),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildElevatedButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.black12, Colors.lightBlueAccent.shade700],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 5,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _resetPassword,
+        child: _isLoading
+            ? CircularProgressIndicator(color: Colors.white)
+            : Text(
+                'Đặt Lại Mật Khẩu',
+                style: TextStyle(color: Colors.white),
+              ),
+        style: ElevatedButton.styleFrom(
+          minimumSize: Size(double.infinity, 50),
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          textStyle: TextStyle(fontSize: 18, color: Colors.white),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
         ),
       ),
     );

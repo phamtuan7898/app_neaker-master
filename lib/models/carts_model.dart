@@ -7,6 +7,7 @@ class CartItem {
   int quantity;
   String size;
   String color;
+  String image; // Trường image để lưu URL hình ảnh
 
   CartItem({
     required this.id,
@@ -15,8 +16,9 @@ class CartItem {
     required this.productName,
     required this.price,
     this.quantity = 1,
-    this.size = '', // Default empty string
-    this.color = '', // Default empty string
+    this.size = '',
+    this.color = '',
+    this.image = '', // Khởi tạo giá trị mặc định là chuỗi rỗng
   });
 
   Map<String, dynamic> toJson() {
@@ -26,8 +28,9 @@ class CartItem {
       'productName': productName,
       'price': price,
       'quantity': quantity,
-      'size': size, // Include size in JSON
-      'color': color, // Include color in JSON
+      'size': size,
+      'color': color,
+      'image': image, // Thêm image vào JSON
     };
   }
 
@@ -37,10 +40,14 @@ class CartItem {
       userId: json['userId'] ?? '',
       productId: json['productId'] ?? '',
       productName: json['productName'] ?? '',
-      price: json['price'] ?? '',
+      price: json['price']?.toString() ?? '',
       quantity: json['quantity'] ?? 1,
-      size: json['size'] ?? '', // Parse size from JSON
-      color: json['color'] ?? '', // Parse color from JSON
+      size: json['size'] ?? '',
+      color: json['color'] ?? '',
+      image: json['image'] is List && json['image'].isNotEmpty
+          ? json['image'][0] // Lấy URL đầu tiên nếu image là mảng
+          : json['image']?.toString() ??
+              '', // Xử lý trường hợp image là chuỗi hoặc null
     );
   }
 

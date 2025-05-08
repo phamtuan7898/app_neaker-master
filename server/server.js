@@ -8,7 +8,7 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5002;
-const upload = multer({ dest: 'uploads/' }); // Specify the uploads folder
+const upload = multer({ dest: 'uploads/' });
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -27,28 +27,27 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true },
   password: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  img: { type: String, default: '' }, // Default to empty string
-  phone: { type: String, default: '' }, // Default to empty string
-  address: { type: String, default: '' }, // Default to empty string
+  img: { type: String, default: '' },
+  phone: { type: String, default: '' },
+  address: { type: String, default: '' },
 });
-
 
 // Product Schema
 const productSchema = new mongoose.Schema({
   productName: { type: String, required: true },
   shoeType: { type: String, required: true },
-  image: [String], // Updated to array of strings for multiple images
+  image: [String],
   price: { type: String, required: true },
   rating: { type: Number, required: true },
   description: { type: String, required: true },
-  color: [String], // Array of color strings
-  size: [String],  // Array of size strings
+  color: [String],
+  size: [String],
 });
 
 // Cart Schema
 const cartItemSchema = new mongoose.Schema({
   userId: { 
-    type: String,  // Changed from ObjectId to String for flexibility
+    type: String,
     required: true 
   },
   productId: { 
@@ -76,9 +75,13 @@ const cartItemSchema = new mongoose.Schema({
   color: {     
     type: String,
     required: true
+  },
+  image: { // Thêm trường image
+    type: String,
+    default: ''
   }
-
 });
+
 // Comment Schema
 const commentSchema = new mongoose.Schema({
   productId: { type: String, required: true },
@@ -89,7 +92,6 @@ const commentSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-const Comment = mongoose.model('Comment', commentSchema);
 // Admin Schema
 const adminSchema = new mongoose.Schema({
   adminname: { 
@@ -102,6 +104,7 @@ const adminSchema = new mongoose.Schema({
     required: true 
   }
 });
+
 // Order Schema
 const orderSchema = new mongoose.Schema({
   userId: { type: String, required: true },
@@ -110,8 +113,9 @@ const orderSchema = new mongoose.Schema({
     productName: String,
     price: String,
     quantity: Number,
-    size: String,    
-    color: String    
+    size: String,
+    color: String,
+    image: String // Thêm trường image
   }],
   totalAmount: { type: Number, required: true },
   orderDate: { type: Date, default: Date.now },
@@ -120,20 +124,18 @@ const orderSchema = new mongoose.Schema({
   address: { type: String, required: true }
 });
 
-
 const Order = mongoose.model('Order', orderSchema);
-
 const Admin = mongoose.model('Admin', adminSchema);
 const CartItem = mongoose.model('CartItem', cartItemSchema);
 const Product = mongoose.model('Product', productSchema);
 const User = mongoose.model('User', userSchema);
+const Comment = mongoose.model('Comment', commentSchema);
 
 // Process payment and create order endpoint
 app.post('/process-payment/:userId', async (req, res) => {
   const { userId } = req.params;
   const { items, totalAmount, phone, address } = req.body;
   
-  // Validate phone number
   if (!phone || phone.trim().length < 10) {
     return res.status(400).json({
       success: false,
@@ -145,7 +147,6 @@ app.post('/process-payment/:userId', async (req, res) => {
   session.startTransaction();
 
   try {
-    // Create new order with size and color
     const newOrder = new Order({
       userId,
       items: items.map(item => ({
@@ -154,7 +155,8 @@ app.post('/process-payment/:userId', async (req, res) => {
         price: item.price,
         quantity: item.quantity,
         size: item.size,
-        color: item.color
+        color: item.color,
+        image: item.image // Lưu trường image
       })),
       totalAmount,
       phone,
@@ -162,7 +164,6 @@ app.post('/process-payment/:userId', async (req, res) => {
     });
     await newOrder.save({ session });
 
-    // Clear user's cart
     await CartItem.deleteMany({ userId }, { session });
 
     await session.commitTransaction();
@@ -182,13 +183,14 @@ app.post('/process-payment/:userId', async (req, res) => {
     session.endSession();
   }
 });
+
 // Get all orders for a user
 app.get('/orders/:userId', async (req, res) => {
   const { userId } = req.params;
   
   try {
     const orders = await Order.find({ userId })
-      .sort({ orderDate: -1 }); // Sort by most recent first
+      .sort({ orderDate: -1 });
     
     res.json(orders);
   } catch (error) {
@@ -196,6 +198,7 @@ app.get('/orders/:userId', async (req, res) => {
     res.status(500).json({ error: 'Error fetching orders' });
   }
 });
+
 // Get single order details
 app.get('/orders/:userId/:orderId', async (req, res) => {
   const { userId, orderId } = req.params;
@@ -216,6 +219,7 @@ app.get('/orders/:userId/:orderId', async (req, res) => {
     res.status(500).json({ error: 'Error fetching order details' });
   }
 });
+
 // Check if user has address
 app.get('/check-address/:userId', async (req, res) => {
   const { userId } = req.params;
@@ -237,15 +241,16 @@ app.get('/check-address/:userId', async (req, res) => {
     res.status(500).json({ error: 'Error checking address status' });
   }
 });
+
 // Update user address
 app.put('/update-address/:userId', async (req, res) => {
   const { userId } = req.params;
-  const { address, phone } = req.body; 
+  const { address, phone } = req.body;
 
   try {
     const user = await User.findByIdAndUpdate(
       userId,
-      { address, phone }, // Cập nhật cả address và phone
+      { address, phone },
       { new: true }
     );
 
@@ -256,7 +261,7 @@ app.put('/update-address/:userId', async (req, res) => {
     res.json({ 
       success: true, 
       address: user.address,
-      phone: user.phone // Trả về cả phone để kiểm tra
+      phone: user.phone
     });
   } catch (error) {
     console.error('Error updating address and phone:', error);
@@ -285,7 +290,7 @@ app.post('/admin/login', async (req, res) => {
 // Get all admins
 app.get('/admin', async (req, res) => {
   try {
-    const admins = await Admin.find({}, { adminpass: 0 }); // Exclude password from response
+    const admins = await Admin.find({}, { adminpass: 0 });
     res.json(admins);
   } catch (error) {
     console.error('Error fetching admins:', error);
@@ -295,31 +300,30 @@ app.get('/admin', async (req, res) => {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Thư mục lưu file
+    cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    // Tạo tên file duy nhất với timestamp
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
   }
 });
-// Cấu hình filter cho file
+
 const fileFilter = (req, file, cb) => {
-  // Chỉ chấp nhận file ảnh
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
     cb(new Error('Not an image! Please upload only images.'), false);
   }
 };
+
 const uploads = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // Giới hạn 5MB
+    fileSize: 5 * 1024 * 1024
   }
 });
-// Thêm route xử lý upload nhiều ảnh
+
 app.post('/uploads-images', upload.array('images', 5), async (req, res) => {
   try {
     const files = req.files;
@@ -330,14 +334,13 @@ app.post('/uploads-images', upload.array('images', 5), async (req, res) => {
       });
     }
 
-    // Create array of image URLs
     const imageUrls = files.map(file => 
       `${req.protocol}://${req.get('host')}/uploads/${file.filename}`
     );
     
     res.status(200).json({
       success: true,
-      imageUrls: imageUrls  // Changed from urls to imageUrls to match client expectation
+      imageUrls: imageUrls
     });
   } catch (error) {
     console.error('Upload error:', error);
@@ -351,9 +354,9 @@ app.post('/uploads-images', upload.array('images', 5), async (req, res) => {
 // Register User
 app.post('/register', async (req, res) => {
   const { username, password, email } = req.body;
-  const img = req.body.img || ''; // Default to empty string if not provided
-  const phone = req.body.phone || ''; // Default to empty string if not provided
-  const address = req.body.address || ''; // Default to empty string if not provided
+  const img = req.body.img || '';
+  const phone = req.body.phone || '';
+  const address = req.body.address || '';
 
   console.log("Received data:", req.body);
   try {
@@ -366,7 +369,6 @@ app.post('/register', async (req, res) => {
   }
 });
 
-
 // Endpoint for uploading user profile images
 app.post('/User/:id/upload-image', upload.single('image'), async (req, res) => {
   const { id } = req.params;
@@ -375,7 +377,7 @@ app.post('/User/:id/upload-image', upload.single('image'), async (req, res) => {
     if (user) {
       user.img = req.file.path;
       await user.save();
-      console.log("Updated user data:", user); // Log dữ liệu người dùng đã cập nhật
+      console.log("Updated user data:", user);
       res.status(200).json(user);
     } else {
       res.status(404).json({ message: 'User not found' });
@@ -386,21 +388,22 @@ app.post('/User/:id/upload-image', upload.single('image'), async (req, res) => {
     res.status(500).json({ error: 'Error uploading image' });
   }
 });
+
 // User Login
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   try {
     const user = await User.findOne({
-      $or: [{ username: username }, { email: username }], // Có thể đăng nhập bằng username hoặc email
+      $or: [{ username: username }, { email: username }],
     });
 
-    console.log("User found:", user); // Kiểm tra người dùng tìm thấy
+    console.log("User found:", user);
     if (!user || user.password !== password) {
       console.log("Invalid credentials");
       return res.status(400).json({ error: 'Invalid username or password' });
     }
 
-    res.json(user); // Trả về thông tin người dùng khi đăng nhập thành công
+    res.json(user);
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Login failed' });
@@ -411,7 +414,6 @@ app.post('/check-user', async (req, res) => {
   const { emailOrUsername } = req.body;
   
   try {
-    // Check if user exists with either email or username
     const user = await User.findOne({
       $or: [
         { email: emailOrUsername },
@@ -426,7 +428,6 @@ app.post('/check-user', async (req, res) => {
       });
     }
 
-    // If user found, send success response
     res.json({ 
       success: true,
       userId: user._id,
@@ -454,20 +455,18 @@ app.post('/forgot-password', async (req, res) => {
       });
     }
 
-    // Tạo transporter với thông tin email thực
     let transporter = nodemailer.createTransport({
       service: 'Gmail',
       auth: {
-        user: 'your-actual-email@gmail.com', // Thay bằng email thực của bạn
-        pass: 'your-app-password' // Thay bằng app password từ Google Account
+        user: 'your-actual-email@gmail.com',
+        pass: 'your-app-password'
       },
     });
 
-    // Tạo link reset với userId
     const resetLink = `http://your-domain.com/reset-password/${user._id}`;
 
     let mailOptions = {
-      from: 'your-actual-email@gmail.com', // Thay email thực
+      from: 'your-actual-email@gmail.com',
       to: email,
       subject: 'Password reset request',
       html: `
@@ -508,7 +507,6 @@ app.post('/reset-password', async (req, res) => {
       });
     }
 
-    // Update password
     user.password = newPassword;
     await user.save();
 
@@ -532,7 +530,7 @@ app.get('/User/:id', async (req, res) => {
   try {
     const user = await User.findById(id);
     if (user) {
-      res.json(user); // Send user data
+      res.json(user);
     } else {
       res.status(404).json({ message: 'User not found' });
     }
@@ -541,6 +539,7 @@ app.get('/User/:id', async (req, res) => {
     res.status(500).json({ error: 'Error fetching user profile' });
   }
 });
+
 // Update user profile 
 app.put('/User/:id', async (req, res) => {
   const { id } = req.params;
@@ -549,8 +548,8 @@ app.put('/User/:id', async (req, res) => {
   try {
     const updatedUser = await User.findByIdAndUpdate(
       id,
-      { username, email, phone, address, img }, // Update user fields
-      { new: true } // Return the updated user
+      { username, email, phone, address, img },
+      { new: true }
     );
 
     if (updatedUser) {
@@ -563,24 +562,21 @@ app.put('/User/:id', async (req, res) => {
     res.status(500).json({ error: 'Error updating user profile' });
   }
 });
-// Add this route to your existing Express app
+
 app.put('/User/:userId/change-password', async (req, res) => {
   const { userId } = req.params;
   const { oldPassword, newPassword } = req.body;
 
   try {
-    // Find user by ID
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).send('User not found');
     }
 
-    // Check if the old password matches
     if (user.password !== oldPassword) {
       return res.status(401).send('Old password is incorrect');
     }
 
-    // Update the password
     user.password = newPassword;
     await user.save();
 
@@ -597,30 +593,23 @@ app.delete('/User/:id/delete-account', async (req, res) => {
   const { password } = req.body;
 
   try {
-    // Start a MongoDB session for transaction
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-      // 1. Find and verify user
       const user = await User.findById(id).session(session);
       if (!user || user.password !== password) {
         await session.abortTransaction();
         return res.status(401).json({ message: 'Invalid credentials' });
       }
 
-      // 2. Delete all cart items for this user
       await CartItem.deleteMany({ userId: id }).session(session);
-
-      // 3. Delete the user account
       await User.findByIdAndDelete(id).session(session);
 
-      // 4. Commit the transaction
       await session.commitTransaction();
       return res.status(200).json({ message: 'Account deleted successfully' });
 
     } catch (error) {
-      // If any error occurs, abort the transaction
       await session.abortTransaction();
       throw error;
     } finally {
@@ -631,7 +620,6 @@ app.delete('/User/:id/delete-account', async (req, res) => {
     return res.status(500).json({ error: 'Error deleting account' });
   }
 });
-
 
 // Add new product
 app.post('/products', async (req, res) => {
@@ -655,7 +643,6 @@ app.post('/products', async (req, res) => {
   }
 });
 
-
 // Get list of products
 app.get('/products', async (req, res) => {
   try {
@@ -667,11 +654,9 @@ app.get('/products', async (req, res) => {
   }
 });
 
-// Trong file app.js
 app.delete('/products/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    // Tìm và xoá sản phẩm
     await Product.findByIdAndDelete(id);
     res.status(200).json({ message: 'Product has been deleted successfully' });
   } catch (error) {
@@ -679,7 +664,7 @@ app.delete('/products/:id', async (req, res) => {
     res.status(500).json({ error: 'Error deleting product' });
   }
 });
-// Add this endpoint to your Express server code
+
 app.put('/product/update/:id', async (req, res) => {
   const { id } = req.params;
   const { 
@@ -706,7 +691,7 @@ app.put('/product/update/:id', async (req, res) => {
         color,
         size
       },
-      { new: true } // Return the updated document
+      { new: true }
     );
 
     if (!updatedProduct) {
@@ -719,9 +704,10 @@ app.put('/product/update/:id', async (req, res) => {
     res.status(500).json({ error: 'Error updating product' });
   }
 });
+
 // Add new cart item
 app.post('/cart', async (req, res) => {
-  const { userId, productId, productName, price, quantity, size, color } = req.body;
+  const { userId, productId, productName, price, quantity, size, color, image } = req.body;
   
   try {
     // Check if item with the same product, size, and color already exists
@@ -733,12 +719,11 @@ app.post('/cart', async (req, res) => {
     });
 
     if (existingItem) {
-      // Update quantity if item exists with same size and color
       existingItem.quantity += quantity;
       await existingItem.save();
       res.status(200).json(existingItem);
     } else {
-      // Create new cart item if doesn't exist
+      // Create new cart item with image
       const newCartItem = new CartItem({
         userId,
         productId,
@@ -746,7 +731,8 @@ app.post('/cart', async (req, res) => {
         price,
         quantity,
         size,
-        color
+        color,
+        image // Lưu trường image
       });
       await newCartItem.save();
       res.status(201).json(newCartItem);
@@ -756,7 +742,6 @@ app.post('/cart', async (req, res) => {
     res.status(500).json({ error: 'Error adding cart item' });
   }
 });
-
 
 // Get list of cart items
 app.get('/cart/:userId', async (req, res) => {
@@ -831,6 +816,7 @@ app.put('/cart/:userId/:productId', async (req, res) => {
     });
   }
 });
+
 // Thêm bình luận mới
 app.post('/comments', async (req, res) => {
   const { productId, userId, username, comment, rating } = req.body;
@@ -846,7 +832,6 @@ app.post('/comments', async (req, res) => {
     
     await newComment.save();
     
-    // Cập nhật rating trung bình cho sản phẩm
     const comments = await Comment.find({ productId });
     const totalRating = comments.reduce((sum, item) => sum + item.rating, 0);
     const averageRating = totalRating / comments.length;

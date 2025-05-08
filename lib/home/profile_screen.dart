@@ -19,6 +19,7 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
   UserModel? user;
   final TextEditingController _passwordController = TextEditingController();
   bool _passwordVisible = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -28,14 +29,20 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
   }
 
   Future<void> fetchUserProfile() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     final fetchedUser = await apiService.getUserProfile(widget.userId);
-    if (fetchedUser != null) {
-      setState(() {
-        user = fetchedUser;
-      });
-    } else {
+
+    setState(() {
+      user = fetchedUser;
+      _isLoading = false;
+    });
+
+    if (fetchedUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load user profile.')),
+        const SnackBar(content: Text('Failed to load user profile.')),
       );
     }
   }
@@ -51,20 +58,25 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
       builder: (dialogContext) {
         return StatefulBuilder(builder: (context, setStateDialog) {
           return AlertDialog(
-            title: Text('Delete Account',
-                style: TextStyle(
-                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            title: const Text(
+              'Delete Account',
+              style: TextStyle(
+                  color: Colors.redAccent, fontWeight: FontWeight.bold),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Please enter your password to confirm account deletion:'),
-                SizedBox(height: 10),
+                const Text(
+                    'Please enter your password to confirm account deletion:'),
+                const SizedBox(height: 16),
                 TextField(
                   controller: _passwordController,
                   obscureText: !_passwordVisible,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _passwordVisible
@@ -82,12 +94,15 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
                 ),
               ],
             ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('Cancel'),
+                child: const Text('Cancel'),
               ),
-              TextButton(
+              ElevatedButton(
                 onPressed: () async {
                   final success = await apiService.deleteAccount(
                     widget.userId,
@@ -97,7 +112,8 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
                   Navigator.pop(context);
                   if (success) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Account deleted successfully')),
+                      const SnackBar(
+                          content: Text('Account deleted successfully')),
                     );
                     Navigator.of(context).pushNamedAndRemoveUntil(
                       '/login',
@@ -105,12 +121,15 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
                     );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to delete account')),
+                      const SnackBar(content: Text('Failed to delete account')),
                     );
                   }
                 },
-                child:
-                    Text('Confirm', style: TextStyle(color: Colors.redAccent)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Delete Account'),
               ),
             ],
           );
@@ -124,21 +143,29 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Sign Out',
-              style:
-                  TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
-          content: Text('Are you sure you want to sign out?'),
+          title: const Text(
+            'Sign Out',
+            style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+          ),
+          content: const Text('Are you sure you want to sign out?'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () async {
                 Navigator.pop(context);
                 await signOut();
               },
-              child: Text('Sign Out', style: TextStyle(color: Colors.blue)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Sign Out'),
             ),
           ],
         );
@@ -155,189 +182,307 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
     );
   }
 
+  Widget _buildProfileHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.white24, Colors.lightBlueAccent.shade700],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 4),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  spreadRadius: 2,
+                  blurRadius: 5,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: CircleAvatar(
+              radius: 60,
+              backgroundImage: user!.img != null && user!.img!.isNotEmpty
+                  ? NetworkImage('${apiService.baseUrl}/${user!.img}')
+                  : null,
+              backgroundColor: Colors.grey[300],
+              child: user!.img == null || user!.img!.isEmpty
+                  ? const Icon(Icons.person, size: 60, color: Colors.white)
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            user!.username ?? 'N/A',
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            user!.email ?? 'N/A',
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.white,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard() {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            _buildInfoTile(
+              icon: Icons.phone,
+              title: 'Phone Number',
+              value: user!.phone ?? 'Not set',
+            ),
+            const Divider(),
+            _buildInfoTile(
+              icon: Icons.location_on,
+              title: 'Address',
+              value: user!.address ?? 'Not set',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoTile({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: Colors.blue, size: 22),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      elevation: 1,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: iconColor),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Colors.grey,
+        ),
+        onTap: onTap,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
-        appBar: AppBar(
-          title: Text('PROFILE', style: TextStyle(fontWeight: FontWeight.w600)),
-          centerTitle: true,
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.white24, Colors.lightBlueAccent.shade700],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          automaticallyImplyLeading: false,
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ListView(
-            children: [
-              if (user != null) ...[
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 4),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.3),
-                                spreadRadius: 2,
-                                blurRadius: 5,
-                                offset: Offset(0, 3),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : user == null
+                ? const Center(child: Text("Couldn't load profile"))
+                : RefreshIndicator(
+                    onRefresh: fetchUserProfile,
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverAppBar(
+                          pinned: true,
+                          expandedHeight: 70,
+                          automaticallyImplyLeading: false,
+                          flexibleSpace: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.white24,
+                                  Colors.lightBlueAccent.shade700
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
+                            ),
+                            child: const FlexibleSpaceBar(
+                              title: Text(
+                                'PROFILE',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              centerTitle: true,
+                            ),
+                          ),
+                        ),
+                        SliverToBoxAdapter(
+                          child: Column(
+                            children: [
+                              _buildProfileHeader(),
+                              const SizedBox(height: 16),
+                              _buildInfoCard(),
+                              const SizedBox(height: 16),
+                              const Padding(
+                                padding: EdgeInsets.only(left: 20),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    'Account Settings',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              _buildActionTile(
+                                icon: Icons.edit,
+                                iconColor: Colors.blue,
+                                title: 'Edit Profile',
+                                onTap: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ProfileEditScreen(
+                                          userId: widget.userId),
+                                    ),
+                                  );
+                                  if (result == true) {
+                                    fetchUserProfile();
+                                  }
+                                },
+                              ),
+                              _buildActionTile(
+                                icon: Icons.local_shipping,
+                                iconColor: Colors.green,
+                                title: 'My Orders',
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          OrderTrackingScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _buildActionTile(
+                                icon: Icons.lock,
+                                iconColor: Colors.amber,
+                                title: 'Change Password',
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          ChangePasswordScreen(
+                                              userId: widget.userId),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _buildActionTile(
+                                icon: Icons.delete,
+                                iconColor: Colors.red,
+                                title: 'Delete Account',
+                                onTap: confirmDeleteAccount,
+                              ),
+                              _buildActionTile(
+                                icon: Icons.logout,
+                                iconColor: Colors.blue,
+                                title: 'Sign Out',
+                                onTap: confirmSignOut,
+                              ),
+                              const SizedBox(height: 24),
                             ],
                           ),
-                          child: CircleAvatar(
-                            radius: 70,
-                            backgroundImage:
-                                user!.img != null && user!.img!.isNotEmpty
-                                    ? NetworkImage(
-                                        '${apiService.baseUrl}/${user!.img}')
-                                    : null,
-                            backgroundColor: Colors.grey[300],
-                            child: user!.img == null
-                                ? Icon(Icons.person,
-                                    size: 70, color: Colors.white)
-                                : null,
-                          ),
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          user!.username ?? 'N/A',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          user!.email ?? 'N/A',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[600],
-                            fontStyle: FontStyle.italic,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 16),
-                        Divider(color: Colors.grey[300]),
-                        SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.phone, color: Colors.blue, size: 20),
-                            SizedBox(width: 8),
-                            Text(
-                              user!.phone ?? 'N/A',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.location_on,
-                                color: Colors.blue, size: 20),
-                            SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                user!.address ?? 'N/A',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.black87,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
                         ),
                       ],
                     ),
                   ),
-                ),
-                SizedBox(height: 20),
-              ],
-              ListTile(
-                leading: Icon(Icons.edit),
-                title: Text(
-                  'Edit Profile',
-                  style: TextStyle(fontSize: 16),
-                ),
-                onTap: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          ProfileEditScreen(userId: widget.userId),
-                    ),
-                  );
-                  if (result == true) {
-                    fetchUserProfile();
-                  }
-                },
-              ),
-              Divider(),
-              ListTile(
-                leading: Icon(Icons.local_shipping, color: Colors.green),
-                title: Text('My Orders', style: TextStyle(fontSize: 16)),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => OrderTrackingScreen(),
-                    ),
-                  );
-                },
-              ),
-              Divider(),
-              ListTile(
-                leading: Icon(Icons.lock, color: Colors.amber),
-                title: Text('Change Password', style: TextStyle(fontSize: 16)),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          ChangePasswordScreen(userId: widget.userId),
-                    ),
-                  );
-                },
-              ),
-              Divider(),
-              ListTile(
-                leading: Icon(Icons.delete, color: Colors.red),
-                title: Text('Delete Account', style: TextStyle(fontSize: 16)),
-                onTap: confirmDeleteAccount,
-              ),
-              Divider(),
-              ListTile(
-                leading: Icon(Icons.logout, color: Colors.blue),
-                title: Text('Sign Out', style: TextStyle(fontSize: 16)),
-                onTap: confirmSignOut,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

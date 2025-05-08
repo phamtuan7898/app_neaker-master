@@ -1,24 +1,38 @@
 import 'dart:convert';
 import 'package:app_neaker/models/carts_model.dart';
+import 'package:app_neaker/models/products_model.dart';
+import 'package:app_neaker/service/product_service.dart';
 import 'package:http/http.dart' as http;
 
 class CartService {
-  final String apiUrl = 'http://192.168.1.14:5002';
+  final String apiUrl = 'http://192.168.1.8:5002';
+  final ProductService _productService = ProductService();
 
   // Helper method to handle MongoDB ObjectId conversion
   String normalizeId(String id) {
-    // Remove any quotes and trim whitespace
     return id.replaceAll('"', '').trim();
   }
 
   Future<void> addCartItem(String userId, CartItem cartItem) async {
     try {
+      // Lấy thông tin sản phẩm từ ProductService để lấy mảng image
+      final products = await _productService.fetchProducts();
+      final product = products.firstWhere(
+        (p) => p.id == cartItem.productId,
+        orElse: () =>
+            throw Exception('Product not found for ID: ${cartItem.productId}'),
+      );
+
+      // Lấy URL hình ảnh đầu tiên từ mảng image
+      final imageUrl = product.image.isNotEmpty ? product.image[0] : '';
+
       final response = await http.post(
         Uri.parse('$apiUrl/cart'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           ...cartItem.toJson(),
           'userId': normalizeId(userId),
+          'image': imageUrl, // Gửi URL hình ảnh đầu tiên
         }),
       );
 
@@ -40,7 +54,33 @@ class CartService {
 
       if (response.statusCode == 200) {
         List<dynamic> jsonResponse = json.decode(response.body);
-        return jsonResponse.map((item) => CartItem.fromJson(item)).toList();
+        // Lấy danh sách sản phẩm từ ProductService
+        final products = await _productService.fetchProducts();
+
+        return jsonResponse.map((item) {
+          // Tìm sản phẩm tương ứng với productId
+          final product = products.firstWhere(
+            (p) => p.id == item['productId'],
+            orElse: () => ProductModel(
+              id: '',
+              productName: '',
+              shoeType: '',
+              image: [], // Mảng rỗng nếu không tìm thấy
+              price: '0',
+              rating: 0,
+              description: '',
+              color: [],
+              size: [],
+            ),
+          );
+
+          // Thêm URL hình ảnh đầu tiên từ mảng image của sản phẩm
+          final imageUrl = product.image.isNotEmpty ? product.image[0] : '';
+          return CartItem.fromJson({
+            ...item,
+            'image': imageUrl, // Gán URL hình ảnh
+          });
+        }).toList();
       } else {
         throw Exception('Failed to load cart items: ${response.body}');
       }
@@ -87,7 +127,6 @@ class CartService {
       throw Exception('Failed to update cart item quantity');
     }
   }
-  // Add this to your CartService class
 
   Future<bool> processPayment(
     String userId,
@@ -107,8 +146,9 @@ class CartService {
                     'productName': item.productName,
                     'price': item.price,
                     'quantity': item.quantity,
-                    'size': item.size, // Add size field
-                    'color': item.color, // Add color field
+                    'size': item.size,
+                    'color': item.color,
+                    'image': item.image, // Gửi URL hình ảnh
                   })
               .toList(),
           'totalAmount': totalAmount,

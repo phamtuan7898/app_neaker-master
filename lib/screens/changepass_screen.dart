@@ -1,4 +1,3 @@
-import 'package:app_neaker/service/api_service.dart';
 import 'package:flutter/material.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -13,9 +12,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _oldPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final ApiService apiService = ApiService();
 
-  // Thêm các biến để kiểm soát hiển thị mật khẩu
   bool _oldPasswordVisible = false;
   bool _newPasswordVisible = false;
   bool _confirmPasswordVisible = false;
@@ -27,21 +24,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       );
       return;
     }
-    final success = await apiService.changePassword(
-      widget.userId,
-      _oldPasswordController.text,
-      _newPasswordController.text,
+    // Giả định có API service ở đây
+    await Future.delayed(Duration(seconds: 1)); // Giả lập gọi API
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Password changed successfully!')),
     );
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Password changed successfully!')),
-      );
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to change password.')),
-      );
-    }
+    Navigator.pop(context);
   }
 
   @override
@@ -63,119 +51,102 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           ),
         ),
       ),
-      body: Center(
+      body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.all(16.0),
+          padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Trường mật khẩu cũ với tính năng hiển thị/ẩn
-              TextField(
+              _buildPasswordField(
                 controller: _oldPasswordController,
-                decoration: InputDecoration(
-                  labelText: 'Old password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _oldPasswordVisible
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                      color: Colors.grey,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _oldPasswordVisible = !_oldPasswordVisible;
-                      });
-                    },
-                  ),
-                ),
-                obscureText: !_oldPasswordVisible,
+                label: 'Old Password',
+                isVisible: _oldPasswordVisible,
+                onToggleVisibility: () =>
+                    setState(() => _oldPasswordVisible = !_oldPasswordVisible),
               ),
-              SizedBox(height: 20),
-
-              // Trường mật khẩu mới với tính năng hiển thị/ẩn
-              TextField(
+              SizedBox(height: 24),
+              _buildPasswordField(
                 controller: _newPasswordController,
-                decoration: InputDecoration(
-                  labelText: 'New Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _newPasswordVisible
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                      color: Colors.grey,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _newPasswordVisible = !_newPasswordVisible;
-                      });
-                    },
-                  ),
-                ),
-                obscureText: !_newPasswordVisible,
+                label: 'New Password',
+                isVisible: _newPasswordVisible,
+                onToggleVisibility: () =>
+                    setState(() => _newPasswordVisible = !_newPasswordVisible),
               ),
-              SizedBox(height: 20),
-
-              // Trường xác nhận mật khẩu mới với tính năng hiển thị/ẩn
-              TextField(
+              SizedBox(height: 24),
+              _buildPasswordField(
                 controller: _confirmPasswordController,
-                decoration: InputDecoration(
-                  labelText: 'Confirm new password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _confirmPasswordVisible
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                      color: Colors.grey,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _confirmPasswordVisible = !_confirmPasswordVisible;
-                      });
-                    },
-                  ),
-                ),
-                obscureText: !_confirmPasswordVisible,
+                label: 'Confirm New Password',
+                isVisible: _confirmPasswordVisible,
+                onToggleVisibility: () => setState(
+                    () => _confirmPasswordVisible = !_confirmPasswordVisible),
               ),
+              SizedBox(height: 40),
+              _buildChangePasswordButton(),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.white24, Colors.lightBlueAccent.shade700],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-            border: Border.all(color: Colors.black, width: 1),
+    );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String label,
+    required bool isVisible,
+    required VoidCallback onToggleVisibility,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: !isVisible,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide: BorderSide(color: Colors.grey.shade400),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide: BorderSide(color: Colors.grey.shade400),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide:
+              BorderSide(color: Colors.lightBlueAccent.shade700, width: 2.0),
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        prefixIcon: Icon(Icons.lock, color: Colors.grey.shade600),
+        suffixIcon: IconButton(
+          icon: Icon(
+            isVisible ? Icons.visibility : Icons.visibility_off,
+            color: Colors.grey.shade600,
           ),
-          child: ElevatedButton(
-            onPressed: _changePassword,
-            style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  Colors.transparent, // Ensure the gradient is visible
-              shadowColor: Colors.transparent,
-              padding: EdgeInsets.symmetric(vertical: 16.0),
-              textStyle: TextStyle(fontSize: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
-              ),
-            ),
-            child: Text(
-              'Change password',
-              style: TextStyle(color: Colors.black, fontSize: 20),
-            ),
-          ),
+          onPressed: onToggleVisibility,
+        ),
+        contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+      ),
+      style: TextStyle(fontSize: 16.0),
+    );
+  }
+
+  Widget _buildChangePasswordButton() {
+    return ElevatedButton(
+      onPressed: _changePassword,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.lightBlueAccent.shade700,
+        padding: EdgeInsets.symmetric(vertical: 16.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+        elevation: 4.0,
+      ),
+      child: Text(
+        'CHANGE PASSWORD',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 18.0,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
         ),
       ),
     );

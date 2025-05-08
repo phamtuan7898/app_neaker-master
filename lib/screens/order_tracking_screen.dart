@@ -3,7 +3,7 @@ import 'package:app_neaker/models/carts_model.dart';
 import 'package:app_neaker/product_screen/comment_screen.dart';
 import 'package:app_neaker/service/auth_service%20.dart';
 import 'package:app_neaker/service/order_service.dart';
-import 'package:app_neaker/service/cart_service.dart'; // Thêm import CartService
+import 'package:app_neaker/service/cart_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/order_model.dart';
@@ -16,7 +16,7 @@ class OrderTrackingScreen extends StatefulWidget {
 class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   final OrderService _orderService = OrderService();
   final AuthService _authService = AuthService();
-  final CartService _cartService = CartService(); // Khởi tạo CartService
+  final CartService _cartService = CartService();
   List<Order> orders = [];
   bool isLoading = true;
 
@@ -101,36 +101,62 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                     ),
                   ),
                   Text(
-                    'Order details',
+                    'Order Details',
                     style: TextStyle(
                       fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
                     ),
                   ),
                   SizedBox(height: 16),
-                  _buildInfoRow('Date booked:',
-                      DateFormat('dd/MM/yyyy HH:mm').format(order.orderDate)),
-                  _buildInfoRow('Status:', order.status),
-                  _buildInfoRow('Phone number:', order.phone),
-                  _buildInfoRow('Address:', order.address),
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          _buildInfoRow('Order ID:', order.id.substring(0, 8)),
+                          _buildInfoRow(
+                              'Date Booked:',
+                              DateFormat('dd/MM/yyyy HH:mm')
+                                  .format(order.orderDate)),
+                          _buildInfoRow('Status:', order.status),
+                          _buildInfoRow('Phone Number:', order.phone),
+                          _buildInfoRow('Address:', order.address),
+                        ],
+                      ),
+                    ),
+                  ),
                   SizedBox(height: 16),
                   Text(
-                    'Product:',
+                    'Products',
                     style: TextStyle(
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   SizedBox(height: 8),
                   ...order.items.map((item) => _buildOrderItemTile(item)),
-                  Divider(thickness: 1),
-                  _buildInfoRow(
-                    'Total amount:',
-                    currencyFormatter.format(order.totalAmount),
-                    textStyle: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                  SizedBox(height: 16),
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: _buildInfoRow(
+                        'Total Amount:',
+                        currencyFormatter.format(order.totalAmount),
+                        textStyle: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -144,7 +170,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
   Widget _buildInfoRow(String label, String value, {TextStyle? textStyle}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -153,6 +179,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
             ),
           ),
           SizedBox(width: 8),
@@ -170,24 +197,28 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
   Widget _buildOrderItemTile(OrderItem item) {
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 4),
+      margin: EdgeInsets.symmetric(vertical: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               item.productName,
-              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 12),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Quantity: ${item.quantity}',
                   style: TextStyle(color: Colors.grey[600]),
                 ),
-                Spacer(),
                 Text(
                   currencyFormatter.format(double.parse(
                       item.price.replaceAll(RegExp(r'[^\d]'), ''))),
@@ -198,7 +229,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 12),
             Row(
               children: [
                 Row(
@@ -208,10 +239,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       style: TextStyle(color: Colors.grey[700]),
                     ),
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         item.size,
@@ -241,15 +272,20 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 12),
-            // Thêm nút để viết comment và mua lại
+            SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton.icon(
+                OutlinedButton.icon(
                   icon: Icon(Icons.comment, color: Colors.blue),
-                  label: Text('Write a review',
+                  label: Text('Write a Review',
                       style: TextStyle(color: Colors.blue)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.blue),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   onPressed: () async {
                     final user = await _authService.getCurrentUser();
                     if (user != null) {
@@ -271,10 +307,16 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   },
                 ),
                 SizedBox(width: 8),
-                TextButton.icon(
-                  icon: Icon(Icons.refresh, color: Colors.green),
+                ElevatedButton.icon(
+                  icon: Icon(Icons.refresh, color: Colors.white),
                   label:
-                      Text('Buy Again', style: TextStyle(color: Colors.green)),
+                      Text('Buy Again', style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   onPressed: () => _buyAgain(item),
                 ),
               ],
@@ -292,9 +334,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       return;
     }
 
-    // Create CartItem from OrderItem
     final cartItem = CartItem(
-      id: '', // MongoDB will auto-generate
+      id: '',
       userId: user.id,
       productId: item.productId,
       productName: item.productName,
@@ -306,16 +347,12 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
     try {
       await _cartService.addCartItem(user.id, cartItem);
-
-      // Navigate to Cart Screen and wait for result
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => CartScreen(),
         ),
       );
-
-      // If returned from CartScreen, reload orders
       await _loadOrders();
     } catch (e) {
       _showErrorMessage('Failed to add ${item.productName} to cart');
@@ -345,7 +382,22 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text('MY ORDER')),
+        appBar: AppBar(
+          title: Text(
+            'MY ORDER',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          centerTitle: true,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.white24, Colors.lightBlueAccent.shade700],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+        ),
         body: Center(child: CircularProgressIndicator()),
       );
     }
@@ -371,19 +423,33 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         onRefresh: _loadOrders,
         child: orders.isEmpty
             ? Center(
-                child: Text(
-                  'No orders yet',
-                  style: TextStyle(fontSize: 18),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.shopping_bag_outlined,
+                        size: 60, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text(
+                      'No orders yet',
+                      style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
               )
             : ListView.builder(
+                padding: EdgeInsets.all(16),
                 itemCount: orders.length,
                 itemBuilder: (context, index) {
                   final order = orders[index];
                   return Card(
-                    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    margin: EdgeInsets.symmetric(vertical: 8),
                     child: InkWell(
                       onTap: () => _showOrderDetails(order),
+                      borderRadius: BorderRadius.circular(12),
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
@@ -395,28 +461,28 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                                 Text(
                                   'Order #${order.id.substring(0, 8)}',
                                   style: TextStyle(
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w600,
                                     fontSize: 16,
                                   ),
                                 ),
                                 Text(
                                   DateFormat('dd/MM/yyyy')
                                       .format(order.orderDate),
-                                  style: TextStyle(color: Colors.grey),
+                                  style: TextStyle(color: Colors.grey[600]),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 8),
+                            SizedBox(height: 12),
                             Text(
-                              '${order.items.length} product',
+                              '${order.items.length} product${order.items.length > 1 ? 's' : ''}',
                               style: TextStyle(color: Colors.grey[600]),
                             ),
-                            SizedBox(height: 8),
+                            SizedBox(height: 12),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Total amount:',
+                                  'Total Amount:',
                                   style: TextStyle(fontSize: 16),
                                 ),
                                 Text(
@@ -429,21 +495,19 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                                 ),
                               ],
                             ),
-                            SizedBox(height: 8),
+                            SizedBox(height: 12),
                             Container(
                               padding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
+                                  horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
                                 color: Colors.green[50],
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 order.status.toUpperCase(),
                                 style: TextStyle(
                                   color: Colors.green,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),

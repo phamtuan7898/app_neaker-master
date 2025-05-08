@@ -16,6 +16,7 @@ class _ViewCommentsScreenState extends State<ViewCommentsScreen> {
   final CommentService _commentService = CommentService();
   List<CommentModel> _comments = [];
   bool _isLoading = true;
+  double _averageRating = 0.0;
 
   @override
   void initState() {
@@ -26,6 +27,16 @@ class _ViewCommentsScreenState extends State<ViewCommentsScreen> {
   Future<void> _loadComments() async {
     try {
       final comments = await _commentService.getComments(widget.productId);
+
+      // Calculate average rating
+      if (comments.isNotEmpty) {
+        double totalRating = 0;
+        for (var comment in comments) {
+          totalRating += comment.rating;
+        }
+        _averageRating = totalRating / comments.length;
+      }
+
       setState(() {
         _comments = comments;
         _isLoading = false;
@@ -42,7 +53,10 @@ class _ViewCommentsScreenState extends State<ViewCommentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('View Reviews'),
+        title: Text(
+          'Customer Reviews',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         centerTitle: true,
         flexibleSpace: Container(
           decoration: BoxDecoration(
@@ -54,50 +68,189 @@ class _ViewCommentsScreenState extends State<ViewCommentsScreen> {
           ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: _isLoading
-            ? Center(child: CircularProgressIndicator())
-            : _comments.isEmpty
-                ? Center(child: Text('No reviews yet.'))
-                : ListView.builder(
-                    itemCount: _comments.length,
-                    itemBuilder: (context, index) {
-                      return _buildCommentItem(_comments[index]);
-                    },
-                  ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                if (_comments.isNotEmpty) _buildRatingSummary(),
+                Expanded(
+                  child: _comments.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.rate_review_outlined,
+                                size: 64,
+                                color: Colors.grey,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'No reviews yet',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey[700],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Be the first to review this product',
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.all(16),
+                          itemCount: _comments.length,
+                          itemBuilder: (context, index) {
+                            return _buildCommentItem(_comments[index]);
+                          },
+                        ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildRatingSummary() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            '${_comments.length} ${_comments.length == 1 ? 'Review' : 'Reviews'}',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                _averageRating.toStringAsFixed(1),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(width: 8),
+              RatingBarIndicator(
+                rating: _averageRating,
+                itemBuilder: (context, index) =>
+                    Icon(Icons.star, color: Colors.amber),
+                itemCount: 5,
+                itemSize: 20.0,
+                direction: Axis.horizontal,
+              ),
+            ],
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Average Rating',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 12,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildCommentItem(CommentModel comment) {
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 8),
+      margin: EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(comment.username,
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(_formatDate(comment.createdAt),
-                    style: TextStyle(color: Colors.grey, fontSize: 12)),
+                CircleAvatar(
+                  backgroundColor:
+                      Colors.lightBlueAccent.shade700.withOpacity(0.2),
+                  child: Text(
+                    comment.username[0].toUpperCase(),
+                    style: TextStyle(
+                      color: Colors.blue[800],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        comment.username,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        _formatDate(comment.createdAt),
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
-            SizedBox(height: 4),
-            RatingBarIndicator(
-              rating: comment.rating,
-              itemBuilder: (context, index) =>
-                  Icon(Icons.star, color: Colors.amber),
-              itemCount: 5,
-              itemSize: 16.0,
-              direction: Axis.horizontal,
+            SizedBox(height: 12),
+            Row(
+              children: [
+                RatingBarIndicator(
+                  rating: comment.rating,
+                  itemBuilder: (context, index) =>
+                      Icon(Icons.star, color: Colors.amber),
+                  itemCount: 5,
+                  itemSize: 18.0,
+                  direction: Axis.horizontal,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  comment.rating.toString(),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[800],
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: 8),
-            Text(comment.comment),
+            SizedBox(height: 12),
+            Text(
+              comment.comment,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[800],
+                height: 1.4,
+              ),
+            ),
           ],
         ),
       ),
@@ -105,6 +258,21 @@ class _ViewCommentsScreenState extends State<ViewCommentsScreen> {
   }
 
   String _formatDate(DateTime dateTime) {
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    // Format with month name
+    List<String> months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    return '${dateTime.day} ${months[dateTime.month - 1]} ${dateTime.year}';
   }
 }

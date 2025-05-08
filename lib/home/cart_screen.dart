@@ -28,14 +28,11 @@ class _CartScreenState extends State<CartScreen> {
     decimalDigits: 0,
   );
 
-  // Helper method to parse price string to double
   double parsePrice(String price) {
-    // Remove currency symbol, commas and spaces
     String cleanPrice = price.replaceAll(RegExp(r'[^\d]'), '');
     return double.parse(cleanPrice);
   }
 
-  // Rest of the initialization and user management methods remain the same...
   @override
   void initState() {
     super.initState();
@@ -99,7 +96,6 @@ class _CartScreenState extends State<CartScreen> {
       });
       if (user != null) {
         await fetchCartItems();
-        // Kiểm tra và điền thông tin người dùng nếu có
         if (user.phone != null && user.phone!.isNotEmpty) {
           _phoneController.text = user.phone!;
         }
@@ -122,7 +118,10 @@ class _CartScreenState extends State<CartScreen> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Delivery information'),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('Thông tin giao hàng',
+              style: TextStyle(fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -131,20 +130,34 @@ class _CartScreenState extends State<CartScreen> {
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
-                    labelText: 'Phone number',
-                    hintText: 'Enter your phone number',
-                    prefixIcon: Icon(Icons.phone),
-                    border: OutlineInputBorder(),
+                    labelText: 'Số điện thoại',
+                    hintText: 'Nhập số điện thoại',
+                    prefixIcon: Icon(Icons.phone,
+                        color: Colors.lightBlueAccent.shade700),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide:
+                          BorderSide(color: Colors.lightBlueAccent.shade700),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
                 SizedBox(height: 16),
                 TextField(
                   controller: _addressController,
                   decoration: InputDecoration(
-                    labelText: 'Shipping address',
-                    hintText: 'Enter your address',
-                    prefixIcon: Icon(Icons.location_on),
-                    border: OutlineInputBorder(),
+                    labelText: 'Địa chỉ giao hàng',
+                    hintText: 'Nhập địa chỉ',
+                    prefixIcon: Icon(Icons.location_on,
+                        color: Colors.lightBlueAccent.shade700),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide:
+                          BorderSide(color: Colors.lightBlueAccent.shade700),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   maxLines: 3,
                 ),
@@ -153,19 +166,19 @@ class _CartScreenState extends State<CartScreen> {
           ),
           actions: <Widget>[
             TextButton(
-              child: Text('Cancel'),
+              child: Text('Hủy', style: TextStyle(color: Colors.red)),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: Text('Confirm'),
+              child: Text('Xác nhận', style: TextStyle(color: Colors.blue)),
               onPressed: () async {
                 if (_phoneController.text.trim().isEmpty ||
                     _phoneController.text.trim().length < 10) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Please enter a valid phone number'),
+                      content: Text('Vui lòng nhập số điện thoại hợp lệ'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -175,7 +188,7 @@ class _CartScreenState extends State<CartScreen> {
                 if (_addressController.text.trim().isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Please enter address'),
+                      content: Text('Vui lòng nhập địa chỉ'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -191,7 +204,7 @@ class _CartScreenState extends State<CartScreen> {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Unable to update information'),
+                      content: Text('Không thể cập nhật thông tin'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -213,7 +226,6 @@ class _CartScreenState extends State<CartScreen> {
         cartItems = items;
       });
 
-      // Kiểm tra và điền thông tin người dùng nếu có
       if (currentUser!.phone != null && currentUser!.phone!.isNotEmpty) {
         _phoneController.text = currentUser!.phone!;
       }
@@ -223,7 +235,7 @@ class _CartScreenState extends State<CartScreen> {
       }
     } catch (e) {
       print('Error fetching cart items: $e');
-      _showErrorMessage('Unable to load cart');
+      _showErrorMessage('Không thể tải giỏ hàng');
     }
   }
 
@@ -240,7 +252,6 @@ class _CartScreenState extends State<CartScreen> {
     });
 
     try {
-      // Sử dụng item.productId thay vì item.id
       await _cartService.updateCartItemQuantity(
         currentUser!.id,
         item.productId,
@@ -258,7 +269,6 @@ class _CartScreenState extends State<CartScreen> {
     } catch (e) {
       print('Lỗi cập nhật số lượng sản phẩm: $e');
       _showErrorMessage('Không thể cập nhật số lượng');
-      // Khôi phục lại số lượng cũ nếu cập nhật thất bại
       setState(() {
         final index = cartItems.indexWhere((i) => i.id == item.id);
         if (index != -1) {
@@ -274,49 +284,50 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _processPayment() async {
     if (cartItems.isEmpty) {
-      _showErrorMessage('Cart is empty');
+      _showErrorMessage('Giỏ hàng trống');
       return;
     }
 
-    // Kiểm tra xem người dùng đã có địa chỉ và số điện thoại hay chưa
     if (_hasAddress && _phoneController.text.trim().isNotEmpty) {
-      // Hiển thị dialog xác nhận thanh toán
       bool? confirmPayment = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text('Payment Confirmation'),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: Text('Xác nhận thanh toán',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Delivery information:'),
+                  Text('Thông tin giao hàng:',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                   SizedBox(height: 8),
-                  Text('Phone number: ${_phoneController.text.trim()}'),
+                  Text('Số điện thoại: ${_phoneController.text.trim()}'),
                   SizedBox(height: 4),
-                  Text('Address: ${_addressController.text.trim()}'),
+                  Text('Địa chỉ: ${_addressController.text.trim()}'),
                   SizedBox(height: 12),
                   Text(
-                      'Total amount: ${currencyFormatter.format(getTotalPriceInVND())}'),
+                      'Tổng tiền: ${currencyFormatter.format(getTotalPriceInVND())}',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.blue)),
                   SizedBox(height: 8),
-                  Text('Are you sure you want to make payment?'),
+                  Text('Bạn có chắc chắn muốn thanh toán?'),
                 ],
               ),
             ),
             actions: <Widget>[
               TextButton(
-                child: Text('Cancel'),
+                child: Text('Hủy', style: TextStyle(color: Colors.red)),
                 onPressed: () {
                   Navigator.of(context).pop(false);
                 },
               ),
               TextButton(
-                child: Text('Confirm'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.blue,
-                ),
+                child: Text('Xác nhận', style: TextStyle(color: Colors.blue)),
                 onPressed: () {
                   Navigator.of(context).pop(true);
                 },
@@ -326,7 +337,6 @@ class _CartScreenState extends State<CartScreen> {
         },
       );
 
-      // Nếu người dùng xác nhận thanh toán
       if (confirmPayment == true) {
         setState(() {
           isLoading = true;
@@ -345,10 +355,10 @@ class _CartScreenState extends State<CartScreen> {
             setState(() {
               cartItems.clear();
             });
-            _showSuccessMessage('Payment successful');
+            _showSuccessMessage('Thanh toán thành công');
           }
         } catch (e) {
-          _showErrorMessage('Payment failed: ${e.toString()}');
+          _showErrorMessage('Thanh toán thất bại: ${e.toString()}');
         } finally {
           setState(() {
             isLoading = false;
@@ -356,7 +366,6 @@ class _CartScreenState extends State<CartScreen> {
         }
       }
     } else {
-      // Nếu không có địa chỉ hoặc số điện thoại, hiển thị dialog để nhập thông tin
       await _showContactDialog();
     }
   }
@@ -364,20 +373,23 @@ class _CartScreenState extends State<CartScreen> {
   Future<void> _processSingleItemPayment(CartItem item) async {
     if (currentUser == null) return;
 
-    // Kiểm tra xem người dùng đã có địa chỉ và số điện thoại hay chưa
     if (_hasAddress && _phoneController.text.trim().isNotEmpty) {
       bool? confirmPayment = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text('Xác nhận thanh toán'),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: Text('Xác nhận thanh toán',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Thông tin giao hàng:'),
+                  Text('Thông tin giao hàng:',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                   SizedBox(height: 8),
                   Text('Số điện thoại: ${_phoneController.text.trim()}'),
                   SizedBox(height: 4),
@@ -392,6 +404,8 @@ class _CartScreenState extends State<CartScreen> {
                   ),
                   Text(
                     'Tổng tiền: ${currencyFormatter.format(parsePrice(item.price) * item.quantity)}',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.blue),
                   ),
                   SizedBox(height: 8),
                   Text('Bạn có chắc chắn muốn mua sản phẩm này?'),
@@ -400,16 +414,13 @@ class _CartScreenState extends State<CartScreen> {
             ),
             actions: <Widget>[
               TextButton(
-                child: Text('Hủy'),
+                child: Text('Hủy', style: TextStyle(color: Colors.red)),
                 onPressed: () {
                   Navigator.of(context).pop(false);
                 },
               ),
               TextButton(
-                child: Text('Xác nhận'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.blue,
-                ),
+                child: Text('Xác nhận', style: TextStyle(color: Colors.blue)),
                 onPressed: () {
                   Navigator.of(context).pop(true);
                 },
@@ -419,7 +430,6 @@ class _CartScreenState extends State<CartScreen> {
         },
       );
 
-      // Nếu người dùng xác nhận thanh toán
       if (confirmPayment == true) {
         setState(() {
           isLoading = true;
@@ -428,14 +438,13 @@ class _CartScreenState extends State<CartScreen> {
         try {
           final success = await _cartService.processPayment(
             currentUser!.id,
-            [item], // Chỉ truyền một sản phẩm duy nhất
+            [item],
             parsePrice(item.price) * item.quantity,
             _phoneController.text.trim(),
             _addressController.text.trim(),
           );
 
           if (success) {
-            // Xóa sản phẩm khỏi giỏ hàng sau khi thanh toán thành công
             setState(() {
               cartItems.remove(item);
             });
@@ -450,7 +459,6 @@ class _CartScreenState extends State<CartScreen> {
         }
       }
     } else {
-      // Nếu không có địa chỉ hoặc số điện thoại, hiển thị dialog để nhập thông tin
       await _showContactDialog();
     }
   }
@@ -474,33 +482,51 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildQuantityControls(CartItem item) {
-    return Row(
-      children: [
-        IconButton(
-          icon: Icon(Icons.remove_circle_outline),
-          color: Colors.red,
-          onPressed: isUpdating
-              ? null
-              : () => _updateQuantity(item, item.quantity - 1),
-        ),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 8),
-          child: Text(
-            item.quantity.toString(),
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+    return AnimatedContainer(
+      duration: Duration(milliseconds: 200),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            onTap: isUpdating
+                ? null
+                : () => _updateQuantity(item, item.quantity - 1),
+            child: Container(
+              padding: EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isUpdating ? Colors.grey.shade300 : Colors.red,
+              ),
+              child: Icon(Icons.remove, size: 18, color: Colors.white),
             ),
           ),
-        ),
-        IconButton(
-          icon: Icon(Icons.add_circle_outline),
-          color: Colors.green,
-          onPressed: isUpdating
-              ? null
-              : () => _updateQuantity(item, item.quantity + 1),
-        ),
-      ],
+          SizedBox(width: 12),
+          Text(
+            item.quantity.toString(),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(width: 12),
+          InkWell(
+            onTap: isUpdating
+                ? null
+                : () => _updateQuantity(item, item.quantity + 1),
+            child: Container(
+              padding: EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isUpdating ? Colors.grey.shade300 : Colors.green,
+              ),
+              child: Icon(Icons.add, size: 18, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -511,20 +537,30 @@ class _CartScreenState extends State<CartScreen> {
         onWillPop: () async => false,
         child: Scaffold(
           appBar: AppBar(
-            title: Text('CART'),
-            automaticallyImplyLeading: false, // Ẩn nút back trên AppBar
+            title:
+                Text('GIỎ HÀNG', style: TextStyle(fontWeight: FontWeight.w600)),
+            centerTitle: true,
+            automaticallyImplyLeading: false,
+            flexibleSpace: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.white24, Colors.lightBlueAccent.shade700],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
           ),
-          body: Center(child: CircularProgressIndicator()),
+          body: Center(
+              child: CircularProgressIndicator(
+                  color: Colors.lightBlueAccent.shade700)),
         ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'GIỎ HÀNG',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
+        title: Text('GIỎ HÀNG', style: TextStyle(fontWeight: FontWeight.w600)),
         centerTitle: true,
         flexibleSpace: Container(
           decoration: BoxDecoration(
@@ -538,120 +574,213 @@ class _CartScreenState extends State<CartScreen> {
       ),
       body: cartItems.isEmpty
           ? Center(
-              child: Text('Giỏ hàng trống', style: TextStyle(fontSize: 18)),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.shopping_cart_outlined,
+                      size: 80, color: Colors.grey.shade400),
+                  SizedBox(height: 16),
+                  Text(
+                    'Giỏ hàng trống',
+                    style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
             )
           : ListView.builder(
+              padding: EdgeInsets.symmetric(vertical: 8),
               itemCount: cartItems.length,
               itemBuilder: (context, index) {
                 final item = cartItems[index];
-                return Card(
-                  margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                  elevation: 4,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item.productName,
-                                    style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Giá: ${currencyFormatter.format(parsePrice(item.price))}',
-                                    style: TextStyle(
-                                        fontSize: 16, color: Colors.blueAccent),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade200,
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          'Size: ${item.size}',
-                                          style: TextStyle(fontSize: 14),
-                                        ),
-                                      ),
-                                      SizedBox(width: 8),
-                                      Container(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade200,
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Text(
-                                              'Màu: ',
-                                              style: TextStyle(fontSize: 14),
-                                            ),
-                                            Container(
-                                              width: 14,
-                                              height: 14,
-                                              decoration: BoxDecoration(
-                                                color: _getColorFromHex(
-                                                    item.color),
-                                                border: Border.all(
-                                                    color: Colors.grey),
-                                                borderRadius:
-                                                    BorderRadius.circular(7),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                return AnimatedOpacity(
+                  opacity: isUpdating && cartItems.contains(item) ? 0.7 : 1.0,
+                  duration: Duration(milliseconds: 200),
+                  child: Card(
+                    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Hiển thị hình ảnh sản phẩm
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
                               ),
+                              child: item.image.isNotEmpty
+                                  ? Image.network(
+                                      item.image,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) => Icon(
+                                        Icons.broken_image,
+                                        color: Colors.grey.shade400,
+                                        size: 40,
+                                      ),
+                                      loadingBuilder:
+                                          (context, child, loadingProgress) {
+                                        if (loadingProgress == null)
+                                          return child;
+                                        return Center(
+                                          child: CircularProgressIndicator(
+                                            value: loadingProgress
+                                                        .expectedTotalBytes !=
+                                                    null
+                                                ? loadingProgress
+                                                        .cumulativeBytesLoaded /
+                                                    (loadingProgress
+                                                            .expectedTotalBytes ??
+                                                        1)
+                                                : null,
+                                            color:
+                                                Colors.lightBlueAccent.shade700,
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : Icon(
+                                      Icons.image,
+                                      color: Colors.grey.shade400,
+                                      size: 40,
+                                    ),
                             ),
-                            Column(
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildQuantityControls(item),
+                                Text(
+                                  item.productName,
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Giá: ${currencyFormatter.format(parsePrice(item.price))}',
+                                  style: TextStyle(
+                                      fontSize: 14, color: Colors.blueAccent),
+                                ),
+                                SizedBox(height: 8),
                                 Row(
                                   children: [
-                                    ElevatedButton(
-                                      onPressed: isLoading
-                                          ? null
-                                          : () =>
-                                              _processSingleItemPayment(item),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green,
-                                        minimumSize: Size(80, 36),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(6),
                                       ),
-                                      child: Text('Mua riêng'),
+                                      child: Text('Size: ${item.size}',
+                                          style: TextStyle(fontSize: 12)),
                                     ),
                                     SizedBox(width: 8),
-                                    IconButton(
-                                      icon: Icon(Icons.delete,
-                                          color: Colors.grey),
-                                      onPressed: isUpdating
-                                          ? null
-                                          : () => _removeCartItem(item),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Text('Màu: ',
+                                              style: TextStyle(fontSize: 12)),
+                                          Container(
+                                            width: 12,
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  _getColorFromHex(item.color),
+                                              border: Border.all(
+                                                  color: Colors.grey.shade400),
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _buildQuantityControls(item),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Colors.black12,
+                                                Colors.lightBlueAccent.shade700,
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black12,
+                                                blurRadius: 4,
+                                                offset: Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: ElevatedButton(
+                                            onPressed: isLoading
+                                                ? null
+                                                : () =>
+                                                    _processSingleItemPayment(
+                                                        item),
+                                            style: ElevatedButton.styleFrom(
+                                              minimumSize: Size(80, 32),
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                              shadowColor: Colors.transparent,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              'Mua riêng',
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.white),
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
+                                        IconButton(
+                                          icon: Icon(Icons.delete,
+                                              color: Colors.red, size: 20),
+                                          onPressed: isUpdating
+                                              ? null
+                                              : () => _removeCartItem(item),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -662,17 +791,13 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Color _getColorFromHex(String colorValue) {
-    // If color is stored as a name
     if (colorValue.toLowerCase() == 'red') return Colors.red;
     if (colorValue.toLowerCase() == 'blue') return Colors.blue;
-    // ... other named colors
 
-    // If color is stored as an integer value as string
     try {
       int colorInt = int.parse(colorValue);
       return Color(colorInt);
     } catch (e) {
-      // If parsing fails, try to handle as a hex string
       if (colorValue.startsWith('#')) {
         colorValue = colorValue.substring(1);
       }
@@ -680,15 +805,15 @@ class _CartScreenState extends State<CartScreen> {
       try {
         return Color(int.parse('0xFF$colorValue'));
       } catch (e) {
-        // Return a default color if all parsing attempts fail
         return Colors.grey;
       }
     }
   }
 
   Widget _buildBottomBar() {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
+    return AnimatedContainer(
+      duration: Duration(milliseconds: 200),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -707,38 +832,77 @@ class _CartScreenState extends State<CartScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Total amount:',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                'Tổng tiền:',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               Text(
                 currencyFormatter.format(getTotalPriceInVND()),
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.blue,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: isLoading ? null : _processPayment,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              minimumSize: Size(double.infinity, 50),
+          SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.black12,
+                  Colors.lightBlueAccent.shade700,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 5,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
-            child: isLoading
-                ? CircularProgressIndicator(color: Colors.white)
-                : Text(
-                    'PAY',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+            child: ElevatedButton(
+              onPressed: isLoading ? null : _processPayment,
+              style: ElevatedButton.styleFrom(
+                minimumSize: Size(double.infinity, 48),
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: isLoading
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Đang xử lý...',
+                          style: TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                      ],
+                    )
+                  : Text(
+                      'THANH TOÁN',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
+            ),
           ),
         ],
       ),
@@ -749,7 +913,6 @@ class _CartScreenState extends State<CartScreen> {
     if (currentUser == null) return;
 
     try {
-      // Sử dụng item.productId thay vì item.id
       await _cartService.removeCartItem(currentUser!.id, item.productId);
       setState(() {
         cartItems.remove(item);

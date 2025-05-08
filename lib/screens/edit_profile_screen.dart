@@ -55,7 +55,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Profile updated successfully!')),
       );
-      Navigator.pop(context, true); // Return `true` to indicate success
+      Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to update profile.')),
@@ -101,23 +101,68 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           ),
         ),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: ListView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            GestureDetector(
-              onTap: pickImage,
-              child: CircleAvatar(
-                radius: 60,
-                backgroundImage: absoluteImagePath != null
-                    ? NetworkImage('${apiService.baseUrl}/$absoluteImagePath')
-                    : null,
-                child: absoluteImagePath == null
-                    ? Icon(Icons.camera_alt, size: 60, color: Colors.grey)
-                    : null,
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: pickImage,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          CircleAvatar(
+                            radius: 60,
+                            backgroundImage: absoluteImagePath != null
+                                ? NetworkImage(
+                                    '${apiService.baseUrl}/$absoluteImagePath')
+                                : null,
+                            backgroundColor: Colors.grey[200],
+                            child: absoluteImagePath == null
+                                ? Icon(Icons.person,
+                                    size: 60, color: Colors.grey)
+                                : null,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.lightBlueAccent.shade700,
+                                shape: BoxShape.circle,
+                                border:
+                                    Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Tap to change profile picture',
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                  ],
+                ),
               ),
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 24),
             _buildTextField(usernameController, 'User name', Icons.person),
             SizedBox(height: 16),
             _buildTextField(emailController, 'Email', Icons.email),
@@ -125,38 +170,36 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             _buildTextField(phoneController, 'Phone number', Icons.phone),
             SizedBox(height: 16),
             _buildTextField(addressController, 'Address', Icons.home),
-          ],
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.white24, Colors.lightBlueAccent.shade700],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-            border: Border.all(color: Colors.black, width: 1),
-          ),
-          child: ElevatedButton(
-            onPressed: saveProfileChanges,
-            style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  Colors.transparent, // Ensure the gradient is visible
-              shadowColor: Colors.transparent,
-              padding: EdgeInsets.symmetric(vertical: 16.0),
-              textStyle: TextStyle(fontSize: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
+            SizedBox(height: 24),
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.white24, Colors.lightBlueAccent.shade700],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                border: Border.all(color: Colors.black, width: 1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ElevatedButton(
+                onPressed: saveProfileChanges,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: EdgeInsets.symmetric(vertical: 16.0),
+                  textStyle: TextStyle(fontSize: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Save changes',
+                  style: TextStyle(color: Colors.black, fontSize: 18),
+                ),
               ),
             ),
-            child: Text(
-              'Save changes',
-              style: TextStyle(color: Colors.black, fontSize: 20),
-            ),
-          ),
+          ],
         ),
       ),
     );
@@ -169,9 +212,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
         ),
-        prefixIcon: Icon(icon),
+        prefixIcon: Icon(icon, color: Colors.lightBlueAccent.shade700),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       ),
     );
   }

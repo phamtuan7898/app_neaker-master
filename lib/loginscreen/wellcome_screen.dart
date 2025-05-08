@@ -87,22 +87,18 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       body: Center(
         child: Stack(
           children: [
-            // Animated background gradient
-            AnimatedContainer(
-              duration: Duration(seconds: 3),
+            // Static background gradient matching LoginScreen
+            Container(
               width: double.infinity,
               height: double.infinity,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.lightBlueAccent.withOpacity(0.3),
+                    Colors.white24,
                     Colors.lightBlueAccent.shade700,
-                    Colors.blue.shade900,
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  stops: [0.0, 0.5, 1.0],
-                  transform: GradientRotation(_controller.value * 2 * 3.14),
                 ),
               ),
             ),

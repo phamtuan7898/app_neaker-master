@@ -16,16 +16,16 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<List<ProductModel>> _productsFuture;
   late PageController _pageController;
   Timer? _timer;
-  UserModel? currentUser; // Add this
+  UserModel? currentUser;
+  int _currentBannerIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _productsFuture = ProductService().fetchProducts();
     _pageController = PageController();
-    _initializeUser(); // Add this
+    _initializeUser();
 
-    // Set up Timer to change page automatically
     _timer = Timer.periodic(Duration(seconds: 3), (timer) {
       if (_pageController.hasClients) {
         _pageController.nextPage(
@@ -36,7 +36,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // Add this method
   Future<void> _initializeUser() async {
     try {
       final user = await AuthService().getCurrentUser();
@@ -58,13 +57,24 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async => false, // Ngăn hành động quay lại
+      onWillPop: () async => false,
       child: Scaffold(
         appBar: AppBar(
-          automaticallyImplyLeading: false, // Tắt nút back mặc định
-          title: const Text(
-            'HOME',
-            style: TextStyle(fontWeight: FontWeight.w600),
+          automaticallyImplyLeading: false,
+          title: Row(
+            children: [
+              if (currentUser != null)
+                Text(
+                  'Hi, ${currentUser!.username?.split(' ').first ?? 'User'}',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              Spacer(),
+              Text(
+                'HOME',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Spacer(),
+            ],
           ),
           centerTitle: true,
           flexibleSpace: Container(
@@ -78,10 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           actions: [
             IconButton(
-              icon: const Icon(
-                Icons.search,
-                color: Colors.white,
-              ),
+              icon: const Icon(Icons.search, color: Colors.white),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -107,18 +114,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10.0),
-                      child: _buildPromotionsBanner(products),
-                    ),
+                    _buildPromotionsBanner(products),
                     _buildCategoryTitle('Featured Products'),
                     _buildHighlightedSection(products),
                     _buildCategoryTitle('Product Catalog'),
                     _buildCategorySection(products, 'Running shoes'),
-                    SizedBox(
-                      height: 10,
-                    ),
+                    const SizedBox(height: 16),
                     _buildCategorySection(products, 'Casual shoes'),
+                    const SizedBox(height: 16),
                   ],
                 ),
               );
@@ -129,14 +132,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Update the navigation methods to pass the user parameter
   void _navigateToProductDetail(ProductModel product) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ProductDetail(
           product: product,
-          user: currentUser, // Pass the current user
+          user: currentUser,
         ),
       ),
     );
@@ -149,23 +151,49 @@ class _HomeScreenState extends State<HomeScreen> {
     }).toList();
     if (promotionsProducts.isEmpty) return Container();
 
-    final infiniteList = List.generate(
-      1000,
-      (index) => promotionsProducts[index % promotionsProducts.length],
-    );
-
     return Container(
-      height: 200,
-      child: PageView.builder(
-        controller: _pageController,
-        itemCount: infiniteList.length,
-        itemBuilder: (context, index) {
-          final product = infiniteList[index];
-          return GestureDetector(
-            onTap: () => _navigateToProductDetail(product),
-            child: _buildPromotionCard(product),
-          );
-        },
+      height: 220,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        children: [
+          Expanded(
+            child: PageView.builder(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentBannerIndex = index % promotionsProducts.length;
+                });
+              },
+              itemCount: promotionsProducts.length * 1000,
+              itemBuilder: (context, index) {
+                final product =
+                    promotionsProducts[index % promotionsProducts.length];
+                return GestureDetector(
+                  onTap: () => _navigateToProductDetail(product),
+                  child: _buildPromotionCard(product),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              promotionsProducts.length,
+              (index) => Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: _currentBannerIndex == index ? 12 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _currentBannerIndex == index
+                      ? Colors.lightBlueAccent.shade700
+                      : Colors.grey,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -175,14 +203,15 @@ class _HomeScreenState extends State<HomeScreen> {
         products.where((p) => p.shoeType == category).toList();
     if (categoryProducts.isEmpty) {
       return Container(
-        height: 200,
-        child: const Center(
-            child: Text('There are no products in this category.')),
+        height: 180,
+        alignment: Alignment.center,
+        child: Text('No products in $category.'),
       );
     }
 
     return Container(
-      height: 200,
+      height: 180,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: categoryProducts.length,
@@ -204,12 +233,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHorizontalProductList(List<ProductModel> products) {
     if (products.isEmpty) {
-      return const Center(child: Text('No featured products.'));
+      return Container(
+        height: 180,
+        alignment: Alignment.center,
+        child: const Text('No featured products.'),
+      );
     }
 
     return Container(
-      height: 200,
-      child: PageView.builder(
+      height: 180,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
         itemCount: products.length,
         itemBuilder: (context, index) {
           final product = products[index];
@@ -222,13 +257,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Rest of your widget building methods remain the same
   Widget _buildPromotionCard(ProductModel product) {
-    // Implementation remains the same
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         image: DecorationImage(
           image: NetworkImage(product.image[0]),
           fit: BoxFit.cover,
@@ -236,51 +269,72 @@ class _HomeScreenState extends State<HomeScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            blurRadius: 12,
+            offset: Offset(0, 6),
           ),
         ],
       ),
-      alignment: Alignment.bottomCenter,
       child: Container(
-        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
-            colors: [Colors.black, Colors.transparent],
+            colors: [Colors.black54, Colors.transparent],
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
           ),
-          borderRadius: BorderRadius.circular(12),
         ),
-        child: Text(
-          product.productName,
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              product.productName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              product.price,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildCategoryCard(ProductModel product) {
-    return Card(
-      elevation: 4,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: 140,
       margin: const EdgeInsets.symmetric(horizontal: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Container(
-        width: 150,
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
               child: Image.network(
                 product.image[0],
-                height: 120,
+                height: 100,
+                width: double.infinity,
                 fit: BoxFit.cover,
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -288,11 +342,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     product.productName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
+                  const SizedBox(height: 4),
                   Text(
                     product.price,
-                    style: TextStyle(color: Colors.blueAccent),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.blueAccent,
+                    ),
                   ),
                 ],
               ),
@@ -304,45 +365,73 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHighlightedCard(ProductModel product) {
-    return Card(
-      elevation: 4,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: 140,
       margin: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.network(
-              product.image[0],
-              height: 120,
-              fit: BoxFit.cover,
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              child: Image.network(
+                product.image[0],
+                height: 100,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.productName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  product.price,
-                  style: TextStyle(color: Colors.black),
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.productName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    product.price,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildCategoryTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white24,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
       child: Text(
         title,
         style: const TextStyle(

@@ -37,7 +37,6 @@ class _CartScreenState extends State<CartScreen> {
   void initState() {
     super.initState();
     _initializeUser();
-    _checkAddress();
   }
 
   Future<void> _checkAddress() async {
@@ -53,8 +52,8 @@ class _CartScreenState extends State<CartScreen> {
         setState(() {
           _hasAddress = data['hasAddress'];
           if (_hasAddress) {
-            _addressController.text = data['currentAddress'];
-            _phoneController.text = data['currentPhone'];
+            _addressController.text = data['currentAddress'] ?? '';
+            _phoneController.text = data['currentPhone'] ?? '';
           }
         });
       }
@@ -77,6 +76,8 @@ class _CartScreenState extends State<CartScreen> {
       if (response.statusCode == 200) {
         setState(() {
           _hasAddress = true;
+          _addressController.text = address;
+          _phoneController.text = phone;
         });
         return true;
       }
@@ -96,13 +97,7 @@ class _CartScreenState extends State<CartScreen> {
       });
       if (user != null) {
         await fetchCartItems();
-        if (user.phone != null && user.phone!.isNotEmpty) {
-          _phoneController.text = user.phone!;
-        }
-        if (user.address != null && user.address!.isNotEmpty) {
-          _addressController.text = user.address!;
-          _hasAddress = true;
-        }
+        await _checkAddress();
       }
     } catch (e) {
       print('Error getting current user: $e');
@@ -112,7 +107,7 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
-  Future<void> _showContactDialog() async {
+  Future<void> _showContactDialog({VoidCallback? onSuccess}) async {
     return showDialog(
       context: context,
       barrierDismissible: false,
@@ -200,7 +195,9 @@ class _CartScreenState extends State<CartScreen> {
                     _phoneController.text.trim());
                 if (success) {
                   Navigator.of(context).pop();
-                  _processPayment();
+                  if (onSuccess != null) {
+                    onSuccess();
+                  }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -225,14 +222,6 @@ class _CartScreenState extends State<CartScreen> {
       setState(() {
         cartItems = items;
       });
-
-      if (currentUser!.phone != null && currentUser!.phone!.isNotEmpty) {
-        _phoneController.text = currentUser!.phone!;
-      }
-      if (currentUser!.address != null && currentUser!.address!.isNotEmpty) {
-        _addressController.text = currentUser!.address!;
-        _hasAddress = true;
-      }
     } catch (e) {
       print('Error fetching cart items: $e');
       _showErrorMessage('Không thể tải giỏ hàng');
@@ -288,7 +277,11 @@ class _CartScreenState extends State<CartScreen> {
       return;
     }
 
-    if (_hasAddress && _phoneController.text.trim().isNotEmpty) {
+    // Kiểm tra xem đã có thông tin giao hàng hợp lệ hay chưa
+    if (_hasAddress &&
+        _phoneController.text.trim().isNotEmpty &&
+        _phoneController.text.trim().length >= 10 &&
+        _addressController.text.trim().isNotEmpty) {
       bool? confirmPayment = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
@@ -311,9 +304,10 @@ class _CartScreenState extends State<CartScreen> {
                   Text('Địa chỉ: ${_addressController.text.trim()}'),
                   SizedBox(height: 12),
                   Text(
-                      'Tổng tiền: ${currencyFormatter.format(getTotalPriceInVND())}',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.blue)),
+                    'Tổng tiền: ${currencyFormatter.format(getTotalPriceInVND())}',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.blue),
+                  ),
                   SizedBox(height: 8),
                   Text('Bạn có chắc chắn muốn thanh toán?'),
                 ],
@@ -366,14 +360,19 @@ class _CartScreenState extends State<CartScreen> {
         }
       }
     } else {
-      await _showContactDialog();
+      // Hiển thị dialog nhập thông tin giao hàng và gọi lại _processPayment sau khi nhập thành công
+      await _showContactDialog(onSuccess: _processPayment);
     }
   }
 
   Future<void> _processSingleItemPayment(CartItem item) async {
     if (currentUser == null) return;
 
-    if (_hasAddress && _phoneController.text.trim().isNotEmpty) {
+    // Kiểm tra xem đã có thông tin giao hàng hợp lệ hay chưa
+    if (_hasAddress &&
+        _phoneController.text.trim().isNotEmpty &&
+        _phoneController.text.trim().length >= 10 &&
+        _addressController.text.trim().isNotEmpty) {
       bool? confirmPayment = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
@@ -459,7 +458,9 @@ class _CartScreenState extends State<CartScreen> {
         }
       }
     } else {
-      await _showContactDialog();
+      // Hiển thị dialog nhập thông tin giao hàng và gọi lại _processSingleItemPayment sau khi nhập thành công
+      await _showContactDialog(
+          onSuccess: () => _processSingleItemPayment(item));
     }
   }
 
@@ -605,7 +606,6 @@ class _CartScreenState extends State<CartScreen> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Hiển thị hình ảnh sản phẩm
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Container(
@@ -717,7 +717,8 @@ class _CartScreenState extends State<CartScreen> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    _buildQuantityControls(item),
+                                    Flexible(
+                                        child: _buildQuantityControls(item)),
                                     Row(
                                       children: [
                                         Container(
@@ -757,7 +758,7 @@ class _CartScreenState extends State<CartScreen> {
                                               ),
                                             ),
                                             child: Text(
-                                              'Mua riêng',
+                                              'Buy',
                                               style: TextStyle(
                                                   fontSize: 12,
                                                   color: Colors.white),
@@ -895,7 +896,7 @@ class _CartScreenState extends State<CartScreen> {
                       ],
                     )
                   : Text(
-                      'THANH TOÁN',
+                      'Buy All',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,

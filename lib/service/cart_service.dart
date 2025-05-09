@@ -5,7 +5,7 @@ import 'package:app_neaker/service/product_service.dart';
 import 'package:http/http.dart' as http;
 
 class CartService {
-  final String apiUrl = 'http://192.168.1.8:5002';
+  final String apiUrl = 'http://192.168.1.11:5002';
   final ProductService _productService = ProductService();
 
   // Helper method to handle MongoDB ObjectId conversion

@@ -889,7 +889,7 @@ class _ProductDetailState extends State<ProductDetail> {
             TextButton(
               style: TextButton.styleFrom(
                 backgroundColor: Colors.blue[600],
-                foregroundColor: Colors.white,
+                foregroundColor: Color.fromARGB(255, 255, 255, 255),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -917,13 +917,6 @@ class _ProductDetailState extends State<ProductDetail> {
                         style: TextStyle(color: Colors.white),
                       ),
                       backgroundColor: Colors.green,
-                      action: SnackBarAction(
-                        label: 'VIEW CART',
-                        textColor: Colors.white,
-                        onPressed: () {
-                          // Navigate to cart
-                        },
-                      ),
                     ),
                   );
                 } catch (e) {

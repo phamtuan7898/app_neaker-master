@@ -1,7 +1,7 @@
 import 'package:app_neaker/models/user_model.dart';
 import 'package:app_neaker/screens/changepass_screen.dart';
 import 'package:app_neaker/screens/edit_profile_screen.dart';
-import 'package:app_neaker/screens/order_tracking_screen.dart';
+import 'package:app_neaker/order_tracking/order_tracking_screen.dart';
 import 'package:app_neaker/service/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -67,8 +67,26 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                    'Please enter your password to confirm account deletion:'),
+                  'This will permanently delete:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                _buildDeleteItem('• Your account information'),
+                _buildDeleteItem('• All your product reviews and comments'),
+                _buildDeleteItem('• Your shopping cart items'),
+                _buildDeleteItem('• Your complete order history'),
                 const SizedBox(height: 16),
+                const Text(
+                  'This action cannot be undone!',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Enter your password to confirm:'),
+                const SizedBox(height: 12),
                 TextField(
                   controller: _passwordController,
                   obscureText: !_passwordVisible,
@@ -104,24 +122,83 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  final success = await apiService.deleteAccount(
-                    widget.userId,
-                    _passwordController.text,
-                  );
-
-                  Navigator.pop(context);
-                  if (success) {
+                  if (_passwordController.text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                          content: Text('Account deleted successfully')),
+                          content: Text('Please enter your password')),
                     );
-                    Navigator.of(context).pushNamedAndRemoveUntil(
-                      '/login',
-                      (Route<dynamic> route) => false,
+                    return;
+                  }
+
+                  // Hiển thị loading với thông báo chi tiết
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => AlertDialog(
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Deleting your account...',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Removing: Profile • Comments • Cart • Orders',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+
+                  try {
+                    // Sử dụng phương thức delete account mới
+                    final result = await apiService.deleteAccountWithDetails(
+                      widget.userId,
+                      _passwordController.text,
                     );
-                  } else {
+
+                    Navigator.pop(context); // Đóng loading
+                    Navigator.pop(dialogContext); // Đóng dialog nhập password
+
+                    if (result['success'] == true) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(result['message']),
+                          backgroundColor: Colors.green,
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+
+                      // Chuyển về màn hình login
+                      Navigator.of(context).pushNamedAndRemoveUntil(
+                        '/login',
+                        (Route<dynamic> route) => false,
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(result['message']),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    Navigator.pop(context); // Đóng loading
+                    Navigator.pop(dialogContext); // Đóng dialog nhập password
+
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Failed to delete account')),
+                      SnackBar(
+                        content: Text('Error: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
                     );
                   }
                 },
@@ -129,12 +206,33 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
                   backgroundColor: Colors.redAccent,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Delete Account'),
+                child: const Text('Delete Everything'),
               ),
             ],
           );
         });
       },
+    );
+  }
+
+  Widget _buildDeleteItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Icon(Icons.remove, size: 16, color: Colors.redAccent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

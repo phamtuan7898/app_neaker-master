@@ -1,7 +1,7 @@
 import 'package:app_neaker/models/products_model.dart';
 import 'package:app_neaker/models/user_model.dart';
 import 'package:app_neaker/product_screen/product_detail.dart';
-import 'package:app_neaker/screens/search_screen.dart';
+import 'package:app_neaker/search_screen/search_screen.dart';
 import 'package:app_neaker/service/auth_service%20.dart';
 import 'package:app_neaker/service/product_service.dart';
 import 'package:flutter/material.dart';

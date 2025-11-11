@@ -3,58 +3,128 @@ import 'package:app_neaker/models/comment_model.dart';
 import 'package:http/http.dart' as http;
 
 class CommentService {
-  final String apiUrl = 'http://192.168.1.11:5002';
+  static const String _baseUrl = 'http://192.168.1.16:5002';
+  static const String _commentsEndpoint = 'api/comments';
+  static const Duration _timeoutDuration = Duration(seconds: 30);
 
-  // Thêm bình luận mới
-  Future<CommentModel> addComment(
-    String productId,
-    String userId,
-    String username,
-    String comment,
-    double rating,
-  ) async {
+  final http.Client _client;
+
+  // Dependency injection để dễ dàng testing
+  CommentService({http.Client? client}) : _client = client ?? http.Client();
+
+  // Đóng client khi không cần thiết
+  void close() {
+    _client.close();
+  }
+
+  Future<CommentModel> addComment({
+    required String productId,
+    required String userId,
+    required String username,
+    required String comment,
+    required double rating,
+  }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$apiUrl/comments'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'productId': productId,
-          'userId': userId,
-          'username': username,
-          'comment': comment,
-          'rating': rating,
-        }),
-      );
+      final response = await _client
+          .post(
+            Uri.parse('$_baseUrl/$_commentsEndpoint'),
+            headers: _headers,
+            body: _encodeRequestBody({
+              'productId': productId,
+              'userId': userId,
+              'username': username,
+              'comment': comment,
+              'rating': rating,
+            }),
+          )
+          .timeout(_timeoutDuration);
 
-      if (response.statusCode == 201) {
-        return CommentModel.fromJson(json.decode(response.body));
-      } else {
-        throw Exception('Failed to add comment: ${response.body}');
-      }
+      return _handleResponse(
+        response,
+        successCallback: () => CommentModel.fromJson(_decodeResponse(response)),
+        errorMessage: 'Failed to add comment',
+      );
     } catch (e) {
-      print('Error adding comment: $e');
-      throw Exception('Failed to add comment');
+      _logError('Adding comment', e);
+      throw _createException('Failed to add comment', e);
     }
   }
 
-  // Lấy danh sách bình luận theo productId
   Future<List<CommentModel>> getComments(String productId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$apiUrl/comments/$productId'),
-      );
+      final response = await _client
+          .get(
+            Uri.parse('$_baseUrl/$_commentsEndpoint/$productId'),
+          )
+          .timeout(_timeoutDuration);
 
-      if (response.statusCode == 200) {
-        List<dynamic> jsonResponse = json.decode(response.body);
-        return jsonResponse
-            .map((comment) => CommentModel.fromJson(comment))
-            .toList();
-      } else {
-        throw Exception('Failed to load comments: ${response.body}');
-      }
+      return _handleResponse(
+        response,
+        successCallback: () {
+          final List<dynamic> jsonResponse = _decodeResponse(response);
+          return jsonResponse
+              .map((comment) => CommentModel.fromJson(comment))
+              .toList();
+        },
+        errorMessage: 'Failed to load comments',
+      );
     } catch (e) {
-      print('Error fetching comments: $e');
-      throw Exception('Failed to load comments');
+      _logError('Fetching comments', e);
+      throw _createException('Failed to load comments', e);
     }
+  }
+
+  // Helper methods
+  Map<String, String> get _headers => {
+        'Content-Type': 'application/json',
+      };
+
+  String _encodeRequestBody(Map<String, dynamic> body) {
+    return json.encode(body);
+  }
+
+  dynamic _decodeResponse(http.Response response) {
+    return json.decode(response.body);
+  }
+
+  T _handleResponse<T>(
+    http.Response response, {
+    required T Function() successCallback,
+    required String errorMessage,
+  }) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return successCallback();
+    } else {
+      throw HttpException(
+        message: '$errorMessage: ${response.body}',
+        statusCode: response.statusCode,
+      );
+    }
+  }
+
+  void _logError(String operation, Object error) {
+    print('Error $operation: $error');
+  }
+
+  Exception _createException(String message, Object error) {
+    if (error is HttpException) {
+      return error;
+    }
+    return Exception('$message: ${error.toString()}');
+  }
+}
+
+// Custom exception class for better error handling
+class HttpException implements Exception {
+  final String message;
+  final int? statusCode;
+
+  HttpException({required this.message, this.statusCode});
+
+  @override
+  String toString() {
+    return statusCode != null
+        ? 'HttpException[$statusCode]: $message'
+        : 'HttpException: $message';
   }
 }

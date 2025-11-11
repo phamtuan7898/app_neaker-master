@@ -4,19 +4,29 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart' as prefs;
 
 class AuthService {
-  final String apiUrl = 'http://192.168.1.11:5002';
-  static const String USER_KEY = 'current_user';
+  static const String _apiUrl = 'http://192.168.1.16:5002';
+  static const String _userKey = 'current_user';
+  static const String _contentType = 'application/json';
+
   static UserModel? _currentUser;
+  static prefs.SharedPreferences? _preferences;
 
-  // Get the currently logged in user
+  // Singleton instance
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  AuthService._internal();
+
+  // Initialize preferences
+  Future<void> _initPreferences() async {
+    _preferences ??= await prefs.SharedPreferences.getInstance();
+  }
+
+  // Get current user with caching
   Future<UserModel?> getCurrentUser() async {
-    if (_currentUser != null) {
-      return _currentUser;
-    }
+    if (_currentUser != null) return _currentUser;
 
-    final prefs.SharedPreferences preferences =
-        await prefs.SharedPreferences.getInstance();
-    final String? userData = preferences.getString(USER_KEY);
+    await _initPreferences();
+    final String? userData = _preferences!.getString(_userKey);
 
     if (userData != null) {
       try {
@@ -24,122 +34,119 @@ class AuthService {
         return _currentUser;
       } catch (e) {
         print('Error parsing stored user data: $e');
-        await preferences.remove(USER_KEY);
+        await _preferences!.remove(_userKey);
       }
     }
     return null;
   }
 
-  // Modified login method to save user data
-  Future<UserModel> login(String usernameOrEmail, String password) async {
+  // Generic HTTP POST request helper
+  Future<Map<String, dynamic>> _postRequest(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
     final response = await http.post(
-      Uri.parse('$apiUrl/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'username': usernameOrEmail,
-        'password': password,
-      }),
+      Uri.parse('$_apiUrl$endpoint'),
+      headers: {'Content-Type': _contentType},
+      body: json.encode(body),
     );
 
-    if (response.statusCode == 200) {
-      final userData = json.decode(response.body);
-      _currentUser = UserModel.fromMap(userData);
+    final responseData = json.decode(response.body);
 
-      // Save user data to SharedPreferences
-      final prefs.SharedPreferences preferences =
-          await prefs.SharedPreferences.getInstance();
-      await preferences.setString(USER_KEY, json.encode(userData));
-
-      return _currentUser!;
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return responseData;
     } else {
-      throw Exception('Login failed');
+      throw Exception(
+          responseData['error'] ?? responseData['message'] ?? 'Request failed');
     }
   }
 
-  // Add logout method
-  Future<void> logout() async {
-    final prefs.SharedPreferences preferences =
-        await prefs.SharedPreferences.getInstance();
-    await preferences.remove(USER_KEY);
-    _currentUser = null;
+  // Login method
+  Future<UserModel> login(String usernameOrEmail, String password) async {
+    final userData = await _postRequest(
+      '/api/users/login',
+      {'username': usernameOrEmail, 'password': password},
+    );
 
-    try {
-      await http.post(
-        Uri.parse('$apiUrl/logout'),
-        headers: {'Content-Type': 'application/json'},
-      );
-    } catch (e) {
-      print('Error logging out from server: $e');
-      // Continue with local logout even if server logout fails
-    }
+    _currentUser = UserModel.fromMap(userData);
+    await _storeUserData(userData);
+
+    return _currentUser!;
   }
 
-  Future<void> register(String username, String password, String email,
-      {String img = '', String phone = '', String address = ''}) async {
-    final response = await http.post(
-      Uri.parse('$apiUrl/register'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
+  // Register method
+  Future<void> register(
+    String username,
+    String password,
+    String email, {
+    String img = '',
+    String phone = '',
+    String address = '',
+  }) async {
+    await _postRequest(
+      '/api/users/register',
+      {
         'username': username,
         'password': password,
         'email': email,
         'img': img,
         'phone': phone,
         'address': address,
-      }),
+      },
     );
-
-    if (response.statusCode != 201) {
-      throw Exception('Failed to register');
-    }
   }
 
+  // Check user existence
   Future<Map<String, dynamic>> checkUser(String emailOrUsername) async {
-    final response = await http.post(
-      Uri.parse('$apiUrl/check-user'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'emailOrUsername': emailOrUsername}),
+    return await _postRequest(
+      '/api/users/check-user',
+      {'emailOrUsername': emailOrUsername},
     );
-
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      throw Exception(json.decode(response.body)['message']);
-    }
   }
 
+  // Reset password
   Future<void> resetPassword(String userId, String newPassword) async {
-    final response = await http.post(
-      Uri.parse('$apiUrl/reset-password'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'userId': userId,
-        'newPassword': newPassword,
-      }),
+    await _postRequest(
+      '/api/users/reset-password',
+      {'userId': userId, 'newPassword': newPassword},
     );
-
-    if (response.statusCode != 200) {
-      throw Exception(json.decode(response.body)['message']);
-    }
   }
 
+  // Forgot password
   Future<void> forgotPassword(String email) async {
-    final response = await http.post(
-      Uri.parse('$apiUrl/forgot-password'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'email': email}),
+    await _postRequest(
+      '/api/users/forgot-password',
+      {'email': email},
     );
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to send reset password link');
-    }
   }
 
-  // Add method to update stored user data
+  // Update stored user data
   Future<void> updateStoredUserData(UserModel updatedUser) async {
     _currentUser = updatedUser;
-    final prefs.SharedPreferences preferences =
-        await prefs.SharedPreferences.getInstance();
-    await preferences.setString(USER_KEY, json.encode(updatedUser.toMap()));
+    await _storeUserData(updatedUser.toMap());
+  }
+
+  // Helper method to store user data
+  Future<void> _storeUserData(Map<String, dynamic> userData) async {
+    await _initPreferences();
+    await _preferences!.setString(_userKey, json.encode(userData));
+  }
+
+  // Logout method
+  Future<void> logout() async {
+    await _initPreferences();
+    await _preferences!.remove(_userKey);
+    _currentUser = null;
+  }
+
+  // Clear cache (for testing or memory management)
+  void clearCache() {
+    _currentUser = null;
+  }
+
+  // Check if user is logged in
+  Future<bool> isLoggedIn() async {
+    final user = await getCurrentUser();
+    return user != null;
   }
 }

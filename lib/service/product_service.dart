@@ -1,21 +1,60 @@
 import 'dart:convert';
-import 'dart:async'; // Add this for DelegatingStream
-import 'dart:io'; // Add this for basename
+import 'dart:async';
+import 'dart:io';
 import 'package:app_neaker/models/products_model.dart';
-import 'package:path/path.dart' as path; // Add this for basename
+import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 class ProductService {
-  final String apiUrl = 'http://192.168.1.11:5002';
-  final ImagePicker _picker = ImagePicker();
+  final String apiUrl;
+  final ImagePicker _picker;
+  final http.Client _httpClient;
+
+  // Constructor với dependency injection
+  ProductService({
+    this.apiUrl = 'http://192.168.1.16:5002',
+    ImagePicker? picker,
+    http.Client? httpClient,
+  })  : _picker = picker ?? ImagePicker(),
+        _httpClient = httpClient ?? http.Client();
+
+  // Thêm timeout constants
+  static const Duration _requestTimeout = Duration(seconds: 30);
+  static const Duration _uploadTimeout = Duration(seconds: 60);
+
+  // Centralized headers
+  Map<String, String> get _jsonHeaders => {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
 
   String _formatPriceForApi(String price) {
     return price
-        .replaceAll(',', '')
+        .replaceAll(RegExp(r'[,\s]'), '') // Dùng RegExp để gọn hơn
         .replaceAll('VND', '')
-        .replaceAll(' ', '')
         .trim();
+  }
+
+  /// Xử lý response và throw exception nếu có lỗi
+  void _handleErrorResponse(http.Response response, String operation) {
+    if (response.statusCode >= 200 && response.statusCode < 300) return;
+
+    try {
+      final errorResponse = json.decode(response.body);
+      throw ProductServiceException(
+        message: errorResponse['error'] ?? 'Unknown error',
+        statusCode: response.statusCode,
+        operation: operation,
+      );
+    } catch (e) {
+      if (e is ProductServiceException) rethrow;
+      throw ProductServiceException(
+        message: response.body,
+        statusCode: response.statusCode,
+        operation: operation,
+      );
+    }
   }
 
   Future<void> updateProduct(
@@ -31,16 +70,27 @@ class ProductService {
     List<String> size,
   ) async {
     try {
+      // Validate inputs
+      _validateProductInput(productName, shoeType, price, color, size);
+
       final formattedPrice = _formatPriceForApi(price);
 
-      List<String> newImageUrls = [];
-      if (newImageFiles.isNotEmpty) {
-        newImageUrls = await uploadImages(newImageFiles);
+      // Upload ảnh mới song song nếu có
+      final newImageUrls = newImageFiles.isNotEmpty
+          ? await uploadImages(newImageFiles)
+          : <String>[];
+
+      final allImageUrls = [...existingImages, ...newImageUrls];
+
+      // Validate có ít nhất 1 ảnh
+      if (allImageUrls.isEmpty) {
+        throw ProductServiceException(
+          message: 'At least one image is required',
+          operation: 'updateProduct',
+        );
       }
 
-      List<String> allImageUrls = [...existingImages, ...newImageUrls];
-
-      final Map<String, dynamic> requestBody = {
+      final requestBody = {
         'productName': productName,
         'shoeType': shoeType,
         'image': allImageUrls,
@@ -51,33 +101,31 @@ class ProductService {
         'size': size,
       };
 
-      print('Request body: ${json.encode(requestBody)}');
+      final response = await _httpClient
+          .put(
+            Uri.parse('$apiUrl/api/products/$productId'),
+            headers: _jsonHeaders,
+            body: json.encode(requestBody),
+          )
+          .timeout(_requestTimeout);
 
-      // Update endpoint URL to match server route
-      final response = await http.put(
-        Uri.parse('$apiUrl/product/update/$productId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode(requestBody),
+      _handleErrorResponse(response, 'updateProduct');
+    } on TimeoutException {
+      throw ProductServiceException(
+        message: 'Request timeout',
+        operation: 'updateProduct',
       );
-
-      print('Response status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode != 200) {
-        try {
-          final errorResponse = json.decode(response.body);
-          throw Exception(
-              'Failed to update product: ${errorResponse['error']}');
-        } catch (e) {
-          throw Exception('Failed to update product: ${response.body}');
-        }
-      }
+    } on SocketException {
+      throw ProductServiceException(
+        message: 'No internet connection',
+        operation: 'updateProduct',
+      );
     } catch (e) {
-      print('Error updating product: $e');
-      rethrow;
+      if (e is ProductServiceException) rethrow;
+      throw ProductServiceException(
+        message: e.toString(),
+        operation: 'updateProduct',
+      );
     }
   }
 
@@ -92,125 +140,272 @@ class ProductService {
     List<String> size,
   ) async {
     try {
-      // Upload images first and get URLs
-      List<String> imageUrls = await uploadImages(imageFiles);
+      // Validate inputs
+      _validateProductInput(productName, shoeType, price, color, size);
+
+      if (imageFiles.isEmpty) {
+        throw ProductServiceException(
+          message: 'At least one image is required',
+          operation: 'addProduct',
+        );
+      }
+
+      final imageUrls = await uploadImages(imageFiles);
 
       if (imageUrls.isEmpty) {
-        throw Exception('No images were uploaded successfully');
+        throw ProductServiceException(
+          message: 'No images were uploaded successfully',
+          operation: 'addProduct',
+        );
       }
 
-      // Create the product with image URLs
-      final response = await http.post(
-        Uri.parse('$apiUrl/products'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'productName': productName,
-          'shoeType': shoeType,
-          'image': imageUrls,
-          'price': price,
-          'rating': rating.toDouble(), // Đảm bảo gửi dưới dạng double
-          'description': description,
-          'color': color,
-          'size': size,
-        }),
+      final requestBody = {
+        'productName': productName,
+        'shoeType': shoeType,
+        'image': imageUrls,
+        'price': _formatPriceForApi(price),
+        'rating': rating,
+        'description': description,
+        'color': color,
+        'size': size,
+      };
+
+      final response = await _httpClient
+          .post(
+            Uri.parse('$apiUrl/api/products'),
+            headers: _jsonHeaders,
+            body: json.encode(requestBody),
+          )
+          .timeout(_requestTimeout);
+
+      _handleErrorResponse(response, 'addProduct');
+    } on TimeoutException {
+      throw ProductServiceException(
+        message: 'Request timeout',
+        operation: 'addProduct',
       );
-
-      if (response.statusCode == 201) {
-        print('Product added successfully');
-      } else {
-        throw Exception('Failed to add product: ${response.body}');
-      }
+    } on SocketException {
+      throw ProductServiceException(
+        message: 'No internet connection',
+        operation: 'addProduct',
+      );
     } catch (e) {
-      print('Error adding product: $e');
-      throw Exception('Failed to add product: $e');
+      if (e is ProductServiceException) rethrow;
+      throw ProductServiceException(
+        message: e.toString(),
+        operation: 'addProduct',
+      );
     }
   }
 
-  // Function to fetch product data
   Future<List<ProductModel>> fetchProducts() async {
     try {
-      final response = await http.get(Uri.parse('$apiUrl/products'));
+      final response = await _httpClient
+          .get(Uri.parse('$apiUrl/api/products'))
+          .timeout(_requestTimeout);
 
-      if (response.statusCode == 200) {
-        List<dynamic> jsonResponse = json.decode(response.body);
-        return jsonResponse
-            .map((product) => ProductModel.fromJson(product))
-            .toList();
-      } else {
-        throw Exception('Failed to load products: ${response.body}');
-      }
+      _handleErrorResponse(response, 'fetchProducts');
+
+      final List<dynamic> jsonResponse = json.decode(response.body);
+      return jsonResponse
+          .map((product) => ProductModel.fromJson(product))
+          .toList();
+    } on TimeoutException {
+      throw ProductServiceException(
+        message: 'Request timeout',
+        operation: 'fetchProducts',
+      );
+    } on SocketException {
+      throw ProductServiceException(
+        message: 'No internet connection',
+        operation: 'fetchProducts',
+      );
+    } on FormatException {
+      throw ProductServiceException(
+        message: 'Invalid response format',
+        operation: 'fetchProducts',
+      );
     } catch (e) {
-      print('Error fetching products: $e');
-      throw Exception('Failed to load products');
+      if (e is ProductServiceException) rethrow;
+      throw ProductServiceException(
+        message: e.toString(),
+        operation: 'fetchProducts',
+      );
     }
   }
 
-  Future<List<XFile>> pickImages() async {
+  Future<List<XFile>> pickImages({int? maxImages}) async {
     try {
-      final List<XFile> images = await _picker.pickMultiImage(
+      final images = await _picker.pickMultiImage(
         imageQuality: 70,
+        limit: maxImages,
       );
       return images;
     } catch (e) {
-      print('Error picking images: $e');
-      throw Exception('Failed to pick images');
+      throw ProductServiceException(
+        message: 'Failed to pick images: ${e.toString()}',
+        operation: 'pickImages',
+      );
     }
   }
 
-  // Function to upload multiple images
-  // Function to upload multiple images
   Future<List<String>> uploadImages(List<XFile> images) async {
+    if (images.isEmpty) return [];
+
     try {
-      var uri = Uri.parse('$apiUrl/uploads-images');
-      var request = http.MultipartRequest('POST', uri);
+      final uri = Uri.parse('$apiUrl/api/uploads-images');
+      final request = http.MultipartRequest('POST', uri);
 
-      // Add all files to the request
-      for (var image in images) {
-        var stream = http.ByteStream(Stream.castFrom(image.openRead()));
-        var length = await image.length();
-
-        var multipartFile = http.MultipartFile(
+      // Upload tất cả ảnh song song
+      for (final image in images) {
+        final bytes = await image.readAsBytes();
+        final multipartFile = http.MultipartFile.fromBytes(
           'images',
-          stream,
-          length,
+          bytes,
           filename: path.basename(image.path),
         );
-
         request.files.add(multipartFile);
       }
 
-      // Send the request
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse = await request.send().timeout(_uploadTimeout);
+      final response = await http.Response.fromStream(streamedResponse);
 
-      // Parse response
-      var jsonResponse = json.decode(response.body);
-
-      if (response.statusCode == 200 && jsonResponse['success'] == true) {
-        // Make sure we're getting a List<String>
-        List<dynamic> urls = jsonResponse['imageUrls'];
-        return urls.map((url) => url.toString()).toList();
-      } else {
-        throw Exception(jsonResponse['error'] ?? 'Failed to upload images');
+      if (response.statusCode != 200) {
+        final jsonResponse = json.decode(response.body);
+        throw ProductServiceException(
+          message: jsonResponse['error'] ?? 'Failed to upload images',
+          statusCode: response.statusCode,
+          operation: 'uploadImages',
+        );
       }
+
+      final jsonResponse = json.decode(response.body);
+      if (jsonResponse['success'] != true) {
+        throw ProductServiceException(
+          message: jsonResponse['error'] ?? 'Upload failed',
+          operation: 'uploadImages',
+        );
+      }
+
+      final List<dynamic> urls = jsonResponse['imageUrls'];
+      return urls.map((url) => url.toString()).toList();
+    } on TimeoutException {
+      throw ProductServiceException(
+        message: 'Upload timeout',
+        operation: 'uploadImages',
+      );
+    } on SocketException {
+      throw ProductServiceException(
+        message: 'No internet connection',
+        operation: 'uploadImages',
+      );
     } catch (e) {
-      print('Error uploading images: $e');
-      throw Exception('Failed to upload images: $e');
+      if (e is ProductServiceException) rethrow;
+      throw ProductServiceException(
+        message: e.toString(),
+        operation: 'uploadImages',
+      );
     }
   }
 
-  // Trong file product_service.dart
   Future<void> deleteProduct(String productId) async {
     try {
-      final response =
-          await http.delete(Uri.parse('$apiUrl/products/$productId'));
-      if (response.statusCode != 200) {
-        final errorResponse = json.decode(response.body);
-        throw Exception('Failed to delete product: ${errorResponse['error']}');
+      if (productId.isEmpty) {
+        throw ProductServiceException(
+          message: 'Product ID is required',
+          operation: 'deleteProduct',
+        );
       }
+
+      final response = await _httpClient
+          .delete(Uri.parse('$apiUrl/api/products/$productId'))
+          .timeout(_requestTimeout);
+
+      _handleErrorResponse(response, 'deleteProduct');
+    } on TimeoutException {
+      throw ProductServiceException(
+        message: 'Request timeout',
+        operation: 'deleteProduct',
+      );
+    } on SocketException {
+      throw ProductServiceException(
+        message: 'No internet connection',
+        operation: 'deleteProduct',
+      );
     } catch (e) {
-      print('Error deleting product: $e');
-      rethrow;
+      if (e is ProductServiceException) rethrow;
+      throw ProductServiceException(
+        message: e.toString(),
+        operation: 'deleteProduct',
+      );
     }
+  }
+
+  /// Validate input chung
+  void _validateProductInput(
+    String productName,
+    String shoeType,
+    String price,
+    List<String> color,
+    List<String> size,
+  ) {
+    if (productName.trim().isEmpty) {
+      throw ProductServiceException(
+        message: 'Product name is required',
+        operation: 'validation',
+      );
+    }
+    if (shoeType.trim().isEmpty) {
+      throw ProductServiceException(
+        message: 'Shoe type is required',
+        operation: 'validation',
+      );
+    }
+    if (price.trim().isEmpty) {
+      throw ProductServiceException(
+        message: 'Price is required',
+        operation: 'validation',
+      );
+    }
+    if (color.isEmpty) {
+      throw ProductServiceException(
+        message: 'At least one color is required',
+        operation: 'validation',
+      );
+    }
+    if (size.isEmpty) {
+      throw ProductServiceException(
+        message: 'At least one size is required',
+        operation: 'validation',
+      );
+    }
+  }
+
+  /// Cleanup resources
+  void dispose() {
+    _httpClient.close();
+  }
+}
+
+/// Custom exception class
+class ProductServiceException implements Exception {
+  final String message;
+  final int? statusCode;
+  final String operation;
+
+  ProductServiceException({
+    required this.message,
+    this.statusCode,
+    required this.operation,
+  });
+
+  @override
+  String toString() {
+    final buffer = StringBuffer('ProductServiceException: $message');
+    if (statusCode != null) {
+      buffer.write(' (Status: $statusCode)');
+    }
+    buffer.write(' - Operation: $operation');
+    return buffer.toString();
   }
 }

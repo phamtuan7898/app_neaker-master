@@ -515,11 +515,11 @@ class _CommentScreenState extends State<CommentScreen> {
 
     try {
       await _commentService.addComment(
-        widget.productId,
-        widget.user!.id,
-        widget.user!.username,
-        _commentController.text.trim(),
-        _userRating,
+        productId: widget.productId,
+        userId: widget.user!.id,
+        username: widget.user!.username,
+        comment: _commentController.text.trim(),
+        rating: _userRating,
       );
 
       _commentController.clear();

@@ -1,3 +1,4 @@
+import 'package:app_neaker/service/api_service.dart';
 import 'package:flutter/material.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -24,12 +25,25 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       );
       return;
     }
-    // Giả định có API service ở đây
-    await Future.delayed(Duration(seconds: 1)); // Giả lập gọi API
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Password changed successfully!')),
+
+    // Gọi API để thay đổi mật khẩu
+    final apiService = ApiService();
+    bool success = await apiService.changePassword(
+      widget.userId,
+      _oldPasswordController.text,
+      _newPasswordController.text,
     );
-    Navigator.pop(context);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Password changed successfully!')),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to change password. Please try again.')),
+      );
+    }
   }
 
   @override

@@ -8,6 +8,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert' as json;
 
 class CartScreen extends StatefulWidget {
+  final bool skipAddressCheck;
+
+  const CartScreen({Key? key, this.skipAddressCheck = false}) : super(key: key);
+
   @override
   _CartScreenState createState() => _CartScreenState();
 }
@@ -44,7 +48,8 @@ class _CartScreenState extends State<CartScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('${CartService().apiUrl}/check-address/${currentUser!.id}'),
+        Uri.parse(
+            '${CartService.apiUrl}/api/orders/check-address/${currentUser!.id}'),
       );
 
       if (response.statusCode == 200) {
@@ -56,16 +61,51 @@ class _CartScreenState extends State<CartScreen> {
             _phoneController.text = data['currentPhone'] ?? '';
           }
         });
+
+        print('=== ADDRESS CHECK ===');
+        print('Has address: $_hasAddress');
+        print('Phone: ${_phoneController.text}');
+        print('Address: ${_addressController.text}');
       }
     } catch (e) {
       print('Error checking address: $e');
     }
   }
 
+  // THÊM: Phương thức lấy thông tin user từ profile
+  Future<void> _loadUserProfile() async {
+    if (currentUser == null) return;
+
+    try {
+      final response = await http.get(
+        Uri.parse('${CartService.apiUrl}/api/users/${currentUser!.id}'),
+      );
+
+      if (response.statusCode == 200) {
+        final userData = json.jsonDecode(response.body);
+        setState(() {
+          // Lấy thông tin từ user profile
+          _phoneController.text = userData['phone'] ?? '';
+          _addressController.text = userData['address'] ?? '';
+          _hasAddress = (userData['phone']?.isNotEmpty == true &&
+              userData['address']?.isNotEmpty == true);
+        });
+
+        print('=== LOADED FROM USER PROFILE ===');
+        print('Phone: ${_phoneController.text}');
+        print('Address: ${_addressController.text}');
+        print('Has address: $_hasAddress');
+      }
+    } catch (e) {
+      print('Error loading user profile: $e');
+    }
+  }
+
   Future<bool> _updateAddress(String address, String phone) async {
     try {
       final response = await http.put(
-        Uri.parse('${CartService().apiUrl}/update-address/${currentUser!.id}'),
+        Uri.parse(
+            '${CartService.apiUrl}/api/orders/update-address/${currentUser!.id}'),
         headers: {'Content-Type': 'application/json'},
         body: json.jsonEncode({
           'address': address,
@@ -73,13 +113,19 @@ class _CartScreenState extends State<CartScreen> {
         }),
       );
 
+      print('Update address response: ${response.statusCode}');
+      print('Update address body: ${response.body}');
+
       if (response.statusCode == 200) {
-        setState(() {
-          _hasAddress = true;
-          _addressController.text = address;
-          _phoneController.text = phone;
-        });
-        return true;
+        final responseData = json.jsonDecode(response.body);
+        if (responseData['success'] == true) {
+          setState(() {
+            _hasAddress = true;
+            _addressController.text = address;
+            _phoneController.text = phone;
+          });
+          return true;
+        }
       }
       return false;
     } catch (e) {
@@ -93,12 +139,33 @@ class _CartScreenState extends State<CartScreen> {
       final user = await AuthService().getCurrentUser();
       setState(() {
         currentUser = user;
-        isLoading = false;
       });
       if (user != null) {
         await fetchCartItems();
-        await _checkAddress();
+
+        // SỬA: Luôn load thông tin user profile trước
+        await _loadUserProfile();
+
+        // Sau đó mới kiểm tra address (nếu không phải skipAddressCheck)
+        if (!widget.skipAddressCheck) {
+          await _checkAddress();
+        } else {
+          // Nếu là skipAddressCheck, đảm bảo _hasAddress = true nếu có thông tin
+          setState(() {
+            _hasAddress = _phoneController.text.isNotEmpty &&
+                _addressController.text.isNotEmpty;
+          });
+        }
       }
+      setState(() {
+        isLoading = false;
+      });
+
+      print('=== INITIALIZATION COMPLETE ===');
+      print('Skip address check: ${widget.skipAddressCheck}');
+      print('Has address: $_hasAddress');
+      print('Phone: ${_phoneController.text}');
+      print('Address: ${_addressController.text}');
     } catch (e) {
       print('Error getting current user: $e');
       setState(() {
@@ -194,6 +261,12 @@ class _CartScreenState extends State<CartScreen> {
                     _addressController.text.trim(),
                     _phoneController.text.trim());
                 if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Cập nhật thông tin thành công'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
                   Navigator.of(context).pop();
                   if (onSuccess != null) {
                     onSuccess();
@@ -271,198 +344,258 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
+  // PHƯƠNG THỨC THANH TOÁN CHÍNH - SỬA LOGIC
   Future<void> _processPayment() async {
     if (cartItems.isEmpty) {
       _showErrorMessage('Giỏ hàng trống');
       return;
     }
 
-    // Kiểm tra xem đã có thông tin giao hàng hợp lệ hay chưa
-    if (_hasAddress &&
-        _phoneController.text.trim().isNotEmpty &&
+    print('=== PROCESS PAYMENT ===');
+    print('Skip address check: ${widget.skipAddressCheck}');
+    print('Has address: $_hasAddress');
+    print('Phone: ${_phoneController.text}');
+    print('Address: ${_addressController.text}');
+
+    // KIỂM TRA XEM CÓ THÔNG TIN GIAO HÀNG HỢP LỆ KHÔNG
+    bool hasValidAddress = _phoneController.text.trim().isNotEmpty &&
         _phoneController.text.trim().length >= 10 &&
-        _addressController.text.trim().isNotEmpty) {
-      bool? confirmPayment = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            title: Text('Xác nhận thanh toán',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Thông tin giao hàng:',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  SizedBox(height: 8),
-                  Text('Số điện thoại: ${_phoneController.text.trim()}'),
-                  SizedBox(height: 4),
-                  Text('Địa chỉ: ${_addressController.text.trim()}'),
-                  SizedBox(height: 12),
-                  Text(
-                    'Tổng tiền: ${currencyFormatter.format(getTotalPriceInVND())}',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.blue),
-                  ),
-                  SizedBox(height: 8),
-                  Text('Bạn có chắc chắn muốn thanh toán?'),
-                ],
-              ),
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: Text('Hủy', style: TextStyle(color: Colors.red)),
-                onPressed: () {
-                  Navigator.of(context).pop(false);
-                },
-              ),
-              TextButton(
-                child: Text('Xác nhận', style: TextStyle(color: Colors.blue)),
-                onPressed: () {
-                  Navigator.of(context).pop(true);
-                },
-              ),
-            ],
-          );
-        },
-      );
+        _addressController.text.trim().isNotEmpty;
 
-      if (confirmPayment == true) {
-        setState(() {
-          isLoading = true;
-        });
-
-        try {
-          final success = await _cartService.processPayment(
-            currentUser!.id,
-            cartItems,
-            getTotalPriceInVND(),
-            _phoneController.text.trim(),
-            _addressController.text.trim(),
-          );
-
-          if (success) {
-            setState(() {
-              cartItems.clear();
-            });
-            _showSuccessMessage('Thanh toán thành công');
-          }
-        } catch (e) {
-          _showErrorMessage('Thanh toán thất bại: ${e.toString()}');
-        } finally {
-          setState(() {
-            isLoading = false;
-          });
-        }
-      }
+    if (hasValidAddress) {
+      // ĐÃ CÓ THÔNG TIN HỢP LỆ - THANH TOÁN NGAY
+      await _executePayment();
     } else {
-      // Hiển thị dialog nhập thông tin giao hàng và gọi lại _processPayment sau khi nhập thành công
+      // CHƯA CÓ THÔNG TIN - HIỂN THỊ DIALOG NHẬP
       await _showContactDialog(onSuccess: _processPayment);
     }
   }
 
+  // PHƯƠNG THỨC THANH TOÁN TỪNG SẢN PHẨM - SỬA LOGIC
   Future<void> _processSingleItemPayment(CartItem item) async {
     if (currentUser == null) return;
 
-    // Kiểm tra xem đã có thông tin giao hàng hợp lệ hay chưa
-    if (_hasAddress &&
-        _phoneController.text.trim().isNotEmpty &&
+    print('=== PROCESS SINGLE ITEM PAYMENT ===');
+    print('Skip address check: ${widget.skipAddressCheck}');
+    print('Has address: $_hasAddress');
+    print('Phone: ${_phoneController.text}');
+    print('Address: ${_addressController.text}');
+
+    // KIỂM TRA XEM CÓ THÔNG TIN GIAO HÀNG HỢP LỆ KHÔNG
+    bool hasValidAddress = _phoneController.text.trim().isNotEmpty &&
         _phoneController.text.trim().length >= 10 &&
-        _addressController.text.trim().isNotEmpty) {
-      bool? confirmPayment = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            title: Text('Xác nhận thanh toán',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Thông tin giao hàng:',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  SizedBox(height: 8),
-                  Text('Số điện thoại: ${_phoneController.text.trim()}'),
-                  SizedBox(height: 4),
-                  Text('Địa chỉ: ${_addressController.text.trim()}'),
-                  SizedBox(height: 12),
-                  Text(
-                    'Sản phẩm: ${item.productName}',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'Số lượng: ${item.quantity}',
-                  ),
-                  Text(
-                    'Tổng tiền: ${currencyFormatter.format(parsePrice(item.price) * item.quantity)}',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.blue),
-                  ),
-                  SizedBox(height: 8),
-                  Text('Bạn có chắc chắn muốn mua sản phẩm này?'),
-                ],
-              ),
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: Text('Hủy', style: TextStyle(color: Colors.red)),
-                onPressed: () {
-                  Navigator.of(context).pop(false);
-                },
-              ),
-              TextButton(
-                child: Text('Xác nhận', style: TextStyle(color: Colors.blue)),
-                onPressed: () {
-                  Navigator.of(context).pop(true);
-                },
-              ),
-            ],
-          );
-        },
-      );
+        _addressController.text.trim().isNotEmpty;
 
-      if (confirmPayment == true) {
-        setState(() {
-          isLoading = true;
-        });
-
-        try {
-          final success = await _cartService.processPayment(
-            currentUser!.id,
-            [item],
-            parsePrice(item.price) * item.quantity,
-            _phoneController.text.trim(),
-            _addressController.text.trim(),
-          );
-
-          if (success) {
-            setState(() {
-              cartItems.remove(item);
-            });
-            _showSuccessMessage('Thanh toán thành công');
-          }
-        } catch (e) {
-          _showErrorMessage('Thanh toán thất bại: ${e.toString()}');
-        } finally {
-          setState(() {
-            isLoading = false;
-          });
-        }
-      }
+    if (hasValidAddress) {
+      // ĐÃ CÓ THÔNG TIN HỢP LỆ - THANH TOÁN NGAY
+      await _executeSingleItemPayment(item);
     } else {
-      // Hiển thị dialog nhập thông tin giao hàng và gọi lại _processSingleItemPayment sau khi nhập thành công
+      // CHƯA CÓ THÔNG TIN - HIỂN THỊ DIALOG NHẬP
       await _showContactDialog(
           onSuccess: () => _processSingleItemPayment(item));
     }
   }
+
+  // THỰC THI THANH TOÁN TẤT CẢ - SỬA ĐỂ LUÔN HIỂN THỊ THÔNG TIN
+  Future<void> _executePayment() async {
+    bool? confirmPayment = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('Xác nhận thanh toán',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // LUÔN hiển thị thông tin giao hàng để user kiểm tra
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Thông tin giao hàng:',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    SizedBox(height: 8),
+                    Text('Số điện thoại: ${_phoneController.text.trim()}'),
+                    SizedBox(height: 4),
+                    Text('Địa chỉ: ${_addressController.text.trim()}'),
+                    SizedBox(height: 12),
+                  ],
+                ),
+                Text(
+                  'Tổng tiền: ${currencyFormatter.format(getTotalPriceInVND())}',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.blue),
+                ),
+                SizedBox(height: 8),
+                Text('Bạn có chắc chắn muốn thanh toán?'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Hủy', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+            ),
+            TextButton(
+              child: Text('Xác nhận', style: TextStyle(color: Colors.blue)),
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmPayment == true) {
+      setState(() {
+        isLoading = true;
+      });
+
+      try {
+        print('=== EXECUTING PAYMENT ===');
+        print('Using phone: ${_phoneController.text.trim()}');
+        print('Using address: ${_addressController.text.trim()}');
+
+        final success = await _cartService.processPayment(
+          currentUser!.id,
+          cartItems,
+          getTotalPriceInVND(),
+          _phoneController.text.trim(),
+          _addressController.text.trim(),
+        );
+
+        if (success) {
+          setState(() {
+            cartItems.clear();
+          });
+          _showSuccessMessage('Thanh toán thành công');
+        } else {
+          _showErrorMessage('Thanh toán thất bại');
+        }
+      } catch (e) {
+        print('Payment error: $e');
+        _showErrorMessage('Thanh toán thất bại: ${e.toString()}');
+      } finally {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  // THỰC THI THANH TOÁN TỪNG SẢN PHẨM - SỬA ĐỂ LUÔN HIỂN THỊ THÔNG TIN
+  Future<void> _executeSingleItemPayment(CartItem item) async {
+    bool? confirmPayment = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('Xác nhận thanh toán',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // LUÔN hiển thị thông tin giao hàng để user kiểm tra
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Thông tin giao hàng:',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    SizedBox(height: 8),
+                    Text('Số điện thoại: ${_phoneController.text.trim()}'),
+                    SizedBox(height: 4),
+                    Text('Địa chỉ: ${_addressController.text.trim()}'),
+                    SizedBox(height: 12),
+                  ],
+                ),
+                Text(
+                  'Sản phẩm: ${item.productName}',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  'Số lượng: ${item.quantity}',
+                ),
+                Text(
+                  'Tổng tiền: ${currencyFormatter.format(parsePrice(item.price) * item.quantity)}',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.blue),
+                ),
+                SizedBox(height: 8),
+                Text('Bạn có chắc chắn muốn mua sản phẩm này?'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Hủy', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+            ),
+            TextButton(
+              child: Text('Xác nhận', style: TextStyle(color: Colors.blue)),
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmPayment == true) {
+      setState(() {
+        isLoading = true;
+      });
+
+      try {
+        print('=== EXECUTING SINGLE ITEM PAYMENT ===');
+        print('Product: ${item.productName}');
+        print('Quantity: ${item.quantity}');
+        print('Using phone: ${_phoneController.text.trim()}');
+        print('Using address: ${_addressController.text.trim()}');
+
+        final success = await _cartService.processSingleItemPayment(
+          currentUser!.id,
+          item,
+          _phoneController.text.trim(),
+          _addressController.text.trim(),
+        );
+
+        if (success) {
+          // SỬA: Chỉ xóa sản phẩm đã thanh toán
+          setState(() {
+            cartItems.removeWhere((cartItem) => cartItem.id == item.id);
+          });
+          _showSuccessMessage('Thanh toán thành công');
+
+          print('=== AFTER SINGLE ITEM PAYMENT ===');
+          print('Remaining cart items: ${cartItems.length}');
+        } else {
+          _showErrorMessage('Thanh toán thất bại');
+        }
+      } catch (e) {
+        print('Single item payment error: $e');
+        _showErrorMessage('Thanh toán thất bại: ${e.toString()}');
+      } finally {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+  // ... (phần còn lại của code giữ nguyên - _updateQuantity, _buildQuantityControls, build, etc.)
 
   void _showErrorMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(

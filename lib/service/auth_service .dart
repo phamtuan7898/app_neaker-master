@@ -1,10 +1,16 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:app_neaker/constants/config.dart';
 import 'package:app_neaker/models/user_model.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart' as prefs;
 
 class AuthService {
-  static const String _apiUrl = 'http://192.168.1.16:5002';
+  // Sử dụng từ AppConfig
+  String get _baseUrl => AppConfig.baseUrl;
+  Duration get _timeout => Duration(seconds: AppConfig.apiTimeout);
+
   static const String _userKey = 'current_user';
   static const String _contentType = 'application/json';
 
@@ -14,6 +20,7 @@ class AuthService {
   // Singleton instance
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
+
   AuthService._internal();
 
   // Initialize preferences
@@ -40,33 +47,82 @@ class AuthService {
     return null;
   }
 
-  // Generic HTTP POST request helper
+  // Generic HTTP POST request helper with timeout
   Future<Map<String, dynamic>> _postRequest(
     String endpoint,
     Map<String, dynamic> body,
   ) async {
-    final response = await http.post(
-      Uri.parse('$_apiUrl$endpoint'),
-      headers: {'Content-Type': _contentType},
-      body: json.encode(body),
-    );
+    try {
+      print('🌐 Making request to: $_baseUrl$endpoint');
 
-    final responseData = json.decode(response.body);
+      // Headers cho Flutter Web
+      Map<String, String> headers = {
+        'Content-Type': _contentType,
+        'Accept': 'application/json',
+      };
 
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return responseData;
-    } else {
-      throw Exception(
-          responseData['error'] ?? responseData['message'] ?? 'Request failed');
+      // THÊM Origin header cho Flutter Web
+      if (kIsWeb) {
+        headers['Origin'] = 'http://localhost:59500'; // Flutter Web dev server
+      }
+
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl$endpoint'),
+            headers: headers, // Sử dụng headers mới
+            body: json.encode(body),
+          )
+          .timeout(_timeout);
+
+      print('✅ Response status: ${response.statusCode}');
+      print('Response headers: ${response.headers}');
+      print('Response body: ${response.body}');
+
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return responseData;
+      } else {
+        throw Exception(responseData['error'] ??
+            responseData['message'] ??
+            'Request failed with status ${response.statusCode}');
+      }
+    } on TimeoutException {
+      throw Exception('Request timeout');
+    } on http.ClientException catch (e) {
+      print('❌ ClientException: $e');
+      print('URI: ${e.uri}');
+      print('Message: ${e.message}');
+      throw Exception('Network error: ${e.message}');
+    } catch (e) {
+      print('❌ Unexpected error: $e');
+      rethrow;
     }
   }
 
   // Login method
   Future<UserModel> login(String usernameOrEmail, String password) async {
+    print('🔐 Attempting login...');
+    print('Username/Email: $usernameOrEmail');
+
+    // CHỈ GỬI MỘT TRƯỜNG - không gửi cả email và username
+    final Map<String, dynamic> requestBody = {
+      'password': password,
+    };
+
+    // Chỉ thêm email hoặc username, không cả hai
+    if (usernameOrEmail.contains('@')) {
+      requestBody['email'] = usernameOrEmail;
+    } else {
+      requestBody['username'] = usernameOrEmail;
+    }
+
     final userData = await _postRequest(
       '/api/users/login',
-      {'username': usernameOrEmail, 'password': password},
+      requestBody,
     );
+
+    print('✅ Login successful, user data: $userData');
 
     _currentUser = UserModel.fromMap(userData);
     await _storeUserData(userData);

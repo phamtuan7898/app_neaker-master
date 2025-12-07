@@ -1,6 +1,8 @@
 import 'package:app_neaker/home/main_screen.dart';
 import 'package:app_neaker/service/auth_service%20.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -14,18 +16,57 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoggingIn = false;
   bool _passwordVisible = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // Test kết nối khi mở màn hình login
+    _testConnection();
+  }
+
+  void _testConnection() async {
+    print('=== CONNECTION TEST ===');
+    print('Is Web: ${kIsWeb}');
+
+    // Test server connection
+    try {
+      final testUrl = 'http://localhost:3000/api/health';
+      final client = http.Client();
+      final response = await client.get(Uri.parse(testUrl));
+      print('✅ Server test: ${response.statusCode}');
+      print('Response: ${response.body}');
+    } catch (e) {
+      print('❌ Server test failed: $e');
+    }
+  }
+
   void _login() async {
     if (_isLoggingIn) return;
+
+    // Validate input
+    if (_inputController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Vui lòng nhập đầy đủ thông tin')),
+      );
+      return;
+    }
+
     setState(() {
       _isLoggingIn = true;
     });
-    await Future.delayed(Duration(milliseconds: 2000));
+
+    print('=== LOGIN ATTEMPT ===');
+    print('Input: ${_inputController.text}');
+    print('Is email: ${_inputController.text.contains('@')}');
+
     try {
+      // Không cần delay
       final user = await _authService.login(
         _inputController.text,
         _passwordController.text,
       );
-      await Future.delayed(Duration(milliseconds: 1000));
+
+      print('✅ Login successful, user ID: ${user?.id}');
+
       if (user != null) {
         Navigator.pushAndRemoveUntil(
           context,
@@ -34,10 +75,29 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
-      await Future.delayed(Duration(milliseconds: 500));
+      print('❌ Login error: $e');
+      print('Error type: ${e.runtimeType}');
+
+      // Hiển thị lỗi chi tiết hơn
+      String errorMessage = 'Đăng nhập thất bại';
+
+      if (e.toString().contains('timeout')) {
+        errorMessage = 'Kết nối timeout. Vui lòng thử lại';
+      } else if (e.toString().contains('Failed to fetch')) {
+        errorMessage = 'Không thể kết nối đến server. Kiểm tra mạng và server';
+      } else if (e.toString().contains('401') ||
+          e.toString().contains('Unauthorized')) {
+        errorMessage = 'Sai tên đăng nhập hoặc mật khẩu';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed')),
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
       );
+    } finally {
       setState(() {
         _isLoggingIn = false;
       });

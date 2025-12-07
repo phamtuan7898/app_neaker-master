@@ -1,15 +1,19 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:app_neaker/constants/config.dart';
 import 'package:app_neaker/models/comment_model.dart';
 import 'package:http/http.dart' as http;
 
 class CommentService {
-  static const String _baseUrl = 'http://192.168.1.16:5002';
+  // Sử dụng từ AppConfig
+  String get _baseUrl => AppConfig.baseUrl;
+  Duration get _timeout => Duration(seconds: AppConfig.apiTimeout);
+
   static const String _commentsEndpoint = 'api/comments';
-  static const Duration _timeoutDuration = Duration(seconds: 30);
 
   final http.Client _client;
 
-  // Dependency injection để dễ dàng testing
+  // Dependency injection với khởi tạo từ .env
   CommentService({http.Client? client}) : _client = client ?? http.Client();
 
   // Đóng client khi không cần thiết
@@ -37,12 +41,17 @@ class CommentService {
               'rating': rating,
             }),
           )
-          .timeout(_timeoutDuration);
+          .timeout(_timeout);
 
       return _handleResponse(
         response,
         successCallback: () => CommentModel.fromJson(_decodeResponse(response)),
         errorMessage: 'Failed to add comment',
+      );
+    } on TimeoutException {
+      throw HttpException(
+        message: 'Request timeout while adding comment',
+        statusCode: 408,
       );
     } catch (e) {
       _logError('Adding comment', e);
@@ -56,7 +65,7 @@ class CommentService {
           .get(
             Uri.parse('$_baseUrl/$_commentsEndpoint/$productId'),
           )
-          .timeout(_timeoutDuration);
+          .timeout(_timeout);
 
       return _handleResponse(
         response,
@@ -67,6 +76,11 @@ class CommentService {
               .toList();
         },
         errorMessage: 'Failed to load comments',
+      );
+    } on TimeoutException {
+      throw HttpException(
+        message: 'Request timeout while fetching comments',
+        statusCode: 408,
       );
     } catch (e) {
       _logError('Fetching comments', e);

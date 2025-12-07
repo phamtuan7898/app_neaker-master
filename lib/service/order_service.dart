@@ -1,95 +1,77 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:app_neaker/constants/config.dart';
 import 'package:app_neaker/models/order_model.dart';
 import 'package:http/http.dart' as http;
 
 class OrderService {
-  static const String _baseUrl = 'http://192.168.1.16:5002';
-  static const String _apiPath = 'api/orders';
-  static const Duration _timeoutDuration = Duration(seconds: 30);
-
   final http.Client _client;
+  // Sử dụng từ AppConfig
+  String get _baseUrl => AppConfig.baseUrl;
+  Duration get _timeout => Duration(seconds: AppConfig.apiTimeout);
 
-  // Dependency injection để dễ dàng testing
   OrderService({http.Client? client}) : _client = client ?? http.Client();
 
+  // Fetch list orders
   Future<List<Order>> fetchOrders(String userId) async {
+    final endpoint = '$_baseUrl/api/orders/$userId';
+
     return _handleRequest(
-      request: () => _client
-          .get(
-            Uri.parse('$_baseUrl/$_apiPath/$userId'),
-          )
-          .timeout(_timeoutDuration),
-      successMessage: 'Fetched Orders successfully',
-      errorMessage: 'Failed to load orders',
+      request: () => _client.get(Uri.parse(endpoint)).timeout(_timeout),
       parser: (responseBody) {
-        final List<dynamic> jsonResponse = json.decode(responseBody);
-        return jsonResponse.map((order) => Order.fromJson(order)).toList();
+        final List jsonResponse = json.decode(responseBody);
+        return jsonResponse.map((e) => Order.fromJson(e)).toList();
       },
+      errorMessage: 'Failed to load orders',
     );
   }
 
+  // Fetch single order
   Future<Order> fetchOrderDetails(String userId, String orderId) async {
+    final endpoint = '$_baseUrl/api/orders/$userId/$orderId';
+
     return _handleRequest(
-      request: () => _client
-          .get(
-            Uri.parse('$_baseUrl/$_apiPath/$userId/$orderId'),
-          )
-          .timeout(_timeoutDuration),
-      successMessage: 'Fetched Order details successfully',
-      errorMessage: 'Failed to load order details',
+      request: () => _client.get(Uri.parse(endpoint)).timeout(_timeout),
       parser: (responseBody) => Order.fromJson(json.decode(responseBody)),
+      errorMessage: 'Failed to load order details',
     );
   }
 
-  // Generic request handler để tránh code trùng lặp
+  // Generic Request Handler
   Future<T> _handleRequest<T>({
     required Future<http.Response> Function() request,
-    required String errorMessage,
     required T Function(String responseBody) parser,
-    String? successMessage,
+    required String errorMessage,
   }) async {
     try {
       final response = await request();
 
       if (response.statusCode == 200) {
-        _printIfNotNull(successMessage);
         return parser(response.body);
       } else {
         throw HttpException(
           statusCode: response.statusCode,
-          message: '$errorMessage: ${response.body}',
+          message: '${response.body}',
         );
       }
-    } on http.ClientException catch (e) {
-      print('Network error: $e');
-      throw NetworkException('Network error occurred: $e');
     } on TimeoutException catch (e) {
-      print('Request timeout: $e');
-      throw ApiTimeoutException('Request timeout occurred: $e');
+      throw ApiTimeoutException('Request timeout: $e');
     } on FormatException catch (e) {
-      print('JSON parsing error: $e');
       throw JsonParseException('Invalid JSON format: $e');
+    } on http.ClientException catch (e) {
+      throw NetworkException('Client error: $e');
     } catch (e) {
-      print('Unexpected error: $e');
       throw Exception('$errorMessage: $e');
     }
   }
 
-  // Helper method để in thông báo nếu không null
-  void _printIfNotNull(String? message) {
-    if (message != null) {
-      print(message);
-    }
-  }
-
-  // Đóng client khi không cần thiết
   void dispose() {
     _client.close();
   }
 }
 
-// Custom exceptions cho xử lý lỗi chi tiết hơn
+// Exceptions
+
 class HttpException implements Exception {
   final int statusCode;
   final String message;
@@ -97,8 +79,7 @@ class HttpException implements Exception {
   HttpException({required this.statusCode, required this.message});
 
   @override
-  String toString() =>
-      'HttpException(statusCode: $statusCode, message: $message)';
+  String toString() => 'HttpException(status: $statusCode, message: $message)';
 }
 
 class NetworkException implements Exception {

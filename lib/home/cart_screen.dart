@@ -49,7 +49,7 @@ class _CartScreenState extends State<CartScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-            '${CartService.apiUrl}/api/orders/check-address/${currentUser!.id}'),
+            '${CartService().baseUrl}/api/orders/check-address/${currentUser!.id}'),
       );
 
       if (response.statusCode == 200) {
@@ -78,7 +78,7 @@ class _CartScreenState extends State<CartScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('${CartService.apiUrl}/api/users/${currentUser!.id}'),
+        Uri.parse('${CartService().baseUrl}/api/users/${currentUser!.id}'),
       );
 
       if (response.statusCode == 200) {
@@ -105,7 +105,7 @@ class _CartScreenState extends State<CartScreen> {
     try {
       final response = await http.put(
         Uri.parse(
-            '${CartService.apiUrl}/api/orders/update-address/${currentUser!.id}'),
+            '${CartService().baseUrl}/api/orders/update-address/${currentUser!.id}'),
         headers: {'Content-Type': 'application/json'},
         body: json.jsonEncode({
           'address': address,

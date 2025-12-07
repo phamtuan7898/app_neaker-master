@@ -1,24 +1,31 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:app_neaker/constants/config.dart';
 import 'package:app_neaker/models/user_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String _baseUrl = 'http://192.168.1.16:5002';
+  // Sử dụng từ AppConfig
+  String get _baseUrl => AppConfig.baseUrl;
+  Duration get _timeout => Duration(seconds: AppConfig.apiTimeout);
+
   static const String _contentType = 'application/json';
 
   // Singleton instance
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
+
   ApiService._internal();
 
   String get baseUrl => _baseUrl;
 
-  // Generic HTTP GET request helper
+  // Generic HTTP GET request helper with timeout
   Future<Map<String, dynamic>?> _getRequest(String endpoint) async {
     try {
-      final response = await http.get(Uri.parse('$_baseUrl$endpoint'));
+      final response =
+          await http.get(Uri.parse('$_baseUrl$endpoint')).timeout(_timeout);
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -26,20 +33,25 @@ class ApiService {
         print('GET Request failed: $endpoint - ${response.statusCode}');
         return null;
       }
+    } on TimeoutException {
+      print('GET Request timeout: $endpoint');
+      return null;
     } catch (error) {
       print('GET Request error: $endpoint - $error');
       return null;
     }
   }
 
-  // Generic HTTP PUT request helper
+  // Generic HTTP PUT request helper with timeout
   Future<bool> _putRequest(String endpoint, Map<String, dynamic> data) async {
     try {
-      final response = await http.put(
-        Uri.parse('$_baseUrl$endpoint'),
-        headers: {'Content-Type': _contentType},
-        body: jsonEncode(data),
-      );
+      final response = await http
+          .put(
+            Uri.parse('$_baseUrl$endpoint'),
+            headers: {'Content-Type': _contentType},
+            body: jsonEncode(data),
+          )
+          .timeout(_timeout);
 
       final success = response.statusCode == 200;
       if (!success) {
@@ -48,21 +60,26 @@ class ApiService {
             'PUT Request failed: $endpoint - ${response.statusCode}, body: $responseBody');
       }
       return success;
+    } on TimeoutException {
+      print('PUT Request timeout: $endpoint');
+      return false;
     } catch (e) {
       print('PUT Request error: $endpoint - $e');
       return false;
     }
   }
 
-  // Generic HTTP DELETE request helper
+  // Generic HTTP DELETE request helper with timeout
   Future<bool> _deleteRequest(String endpoint,
       {Map<String, dynamic>? data}) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$_baseUrl$endpoint'),
-        headers: {'Content-Type': _contentType},
-        body: data != null ? jsonEncode(data) : null,
-      );
+      final response = await http
+          .delete(
+            Uri.parse('$_baseUrl$endpoint'),
+            headers: {'Content-Type': _contentType},
+            body: data != null ? jsonEncode(data) : null,
+          )
+          .timeout(_timeout);
 
       final success = response.statusCode == 200;
       if (!success) {
@@ -72,6 +89,9 @@ class ApiService {
             'DELETE Request failed: $endpoint - ${response.statusCode}, message: $errorMessage');
       }
       return success;
+    } on TimeoutException {
+      print('DELETE Request timeout: $endpoint');
+      return false;
     } catch (e) {
       print('DELETE Request error: $endpoint - $e');
       return false;
@@ -96,7 +116,7 @@ class ApiService {
       request.files
           .add(await http.MultipartFile.fromPath('image', imageFile.path));
 
-      final response = await request.send();
+      final response = await request.send().timeout(_timeout);
       final success = response.statusCode == 200;
 
       if (!success) {
@@ -104,6 +124,9 @@ class ApiService {
       }
 
       return success;
+    } on TimeoutException {
+      print('Image upload timeout');
+      return false;
     } catch (e) {
       print('Error uploading profile image: $e');
       return false;
@@ -121,32 +144,39 @@ class ApiService {
     );
   }
 
-// Method to delete all user data before account deletion
+  // Method to delete all user data before account deletion
   Future<bool> deleteAllUserData(String userId) async {
     try {
       // Delete user comments
-      final commentsResponse = await http.delete(
-        Uri.parse('$_baseUrl/api/comments/user/$userId'),
-      );
+      final commentsResponse = await http
+          .delete(
+            Uri.parse('$_baseUrl/api/comments/user/$userId'),
+          )
+          .timeout(_timeout);
 
       // Delete user cart items
-      final cartResponse = await http.delete(
-        Uri.parse('$_baseUrl/api/cart/user/$userId'),
-      );
+      final cartResponse = await http
+          .delete(
+            Uri.parse('$_baseUrl/api/cart/user/$userId'),
+          )
+          .timeout(_timeout);
 
       // Delete user orders
-      final ordersResponse = await http.delete(
-        Uri.parse('$_baseUrl/api/orders/user/$userId'),
-      );
+      final ordersResponse = await http
+          .delete(
+            Uri.parse('$_baseUrl/api/orders/user/$userId'),
+          )
+          .timeout(_timeout);
 
       // Log the results for debugging
       print('Comments deletion: ${commentsResponse.statusCode}');
       print('Cart deletion: ${cartResponse.statusCode}');
       print('Orders deletion: ${ordersResponse.statusCode}');
 
-      // We consider it successful even if some deletions fail
-      // The main account deletion will handle the transaction
       return true;
+    } on TimeoutException {
+      print('Timeout while deleting user data');
+      return false;
     } catch (e) {
       print('Error deleting user data: $e');
       return false;
@@ -156,10 +186,8 @@ class ApiService {
   // Enhanced delete account method
   Future<bool> deleteAccount(String userId, String password) async {
     try {
-      // First, try to delete individual user data
       await deleteAllUserData(userId);
 
-      // Then delete the main account
       final success = await _deleteRequest(
         '/api/users/$userId/delete-account',
         data: {'password': password},
@@ -187,15 +215,15 @@ class ApiService {
         'message': ''
       };
 
-      // Delete user data first
       result['dataDeleted'] = await deleteAllUserData(userId);
 
-      // Then delete account
-      final response = await http.delete(
-        Uri.parse('$_baseUrl/api/users/$userId/delete-account'),
-        headers: {'Content-Type': _contentType},
-        body: jsonEncode({'password': password}),
-      );
+      final response = await http
+          .delete(
+            Uri.parse('$_baseUrl/api/users/$userId/delete-account'),
+            headers: {'Content-Type': _contentType},
+            body: jsonEncode({'password': password}),
+          )
+          .timeout(_timeout);
 
       if (response.statusCode == 200) {
         result['success'] = true;
@@ -208,13 +236,15 @@ class ApiService {
       }
 
       return result;
+    } on TimeoutException {
+      return {'success': false, 'message': 'Request timeout'};
     } catch (e) {
       print('Error in deleteAccountWithDetails: $e');
       return {'success': false, 'message': 'Error: ${e.toString()}'};
     }
   }
 
-  // Clear shared preferences (extracted for reusability)
+  // Clear shared preferences
   Future<void> _clearSharedPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -227,8 +257,11 @@ class ApiService {
   // Additional utility methods
   Future<bool> checkServerConnection() async {
     try {
-      final response = await http.get(Uri.parse('$_baseUrl/health'));
+      final response =
+          await http.get(Uri.parse('$_baseUrl/health')).timeout(_timeout);
       return response.statusCode == 200;
+    } on TimeoutException {
+      return false;
     } catch (e) {
       return false;
     }
@@ -251,7 +284,7 @@ class ApiService {
     if (address != null) updateData['address'] = address;
     if (img != null) updateData['img'] = img;
 
-    if (updateData.isEmpty) return true; // Nothing to update
+    if (updateData.isEmpty) return true;
 
     return await updateUserProfile(userId, updateData);
   }

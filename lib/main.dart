@@ -3,9 +3,15 @@ import 'package:app_neaker/loginscreen/forgot_password_screen.dart';
 import 'package:app_neaker/loginscreen/login_screen.dart';
 import 'package:app_neaker/loginscreen/register_screen.dart';
 import 'package:app_neaker/loginscreen/wellcome_screen.dart';
+import 'package:app_neaker/utils/server_tester.dart'; // Thêm import
 import 'package:flutter/material.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Test server connection
+  await ServerTester.testAllEndpoints();
+
   runApp(const MyApp());
 }
 
@@ -26,7 +32,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => LoginScreen(),
         '/register': (context) => RegisterScreen(),
         '/forgot-password': (context) => ForgotPasswordScreen(),
-        '/home': (context) => HomeScreen(), // Thêm HomeScreen vào routes
+        '/home': (context) => HomeScreen(),
       },
     );
   }

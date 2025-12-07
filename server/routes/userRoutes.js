@@ -26,14 +26,24 @@ router.post('/register', async (req, res) => {
 
 // User Login
 router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
+  const { username, email, password } = req.body;
+  
   try {
+    // Tìm user bằng username HOẶC email
     const user = await User.findOne({
-      $or: [{ username: username }, { email: username }],
+      $or: [
+        { username: username || '' },
+        { email: email || '' }
+      ]
     });
 
-    if (!user || user.password !== password) {
+    if (!user) {
       return res.status(400).json({ error: 'Invalid username or password' });
+    }
+
+    // Kiểm tra password
+    if (user.password !== password) {
+      return res.status(400).json({ error: 'Invalid password' });
     }
 
     res.json(user);
